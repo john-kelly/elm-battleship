@@ -9,26 +9,45 @@ import Location as Loc
 type Orientation = Horizontal | Vertical
 
 type alias Ship =
-  { length : Int
+  { id : Int
+  , length : Int
   , orientation : Orientation
   , location : Loc.Location
+  , added : Bool
   }
 
 init : Int -> Orientation -> Loc.Location -> Ship
 init length orientation location =
-  { length = length
+  { id = 0
+  , length = length
   , orientation = orientation
   , location = location
+  , added = False
   }
+
+setRow : Int -> Ship -> Ship
+setRow row ship =
+  { ship | location <- (row, (Loc.column ship.location)) }
+
+getRow : Ship -> Int
+getRow ship =
+  Loc.row ship.location
+
+setColumn : Int -> Ship -> Ship
+setColumn column ship =
+  { ship | location <- ((Loc.row ship.location), column) }
+
+getColumn : Ship -> Int
+getColumn ship =
+  Loc.column ship.location
 
 getShipCoordinates : Ship -> List Loc.Location
 getShipCoordinates ship =
   let
-    lengthRange = [0 .. ship.length - 1]
-    locationRepeat = List.repeat ship.length ship.location
+    addToLocation =
+      case ship.orientation of
+        Vertical -> Loc.addToRow
+        Horizontal -> Loc.addToColumn
   in
-    case ship.orientation of
-      Vertical ->
-        List.map2 Loc.addToRow lengthRange locationRepeat
-      Horizontal ->
-        List.map2 Loc.addToColumn lengthRange locationRepeat
+    List.repeat ship.length ship.location
+      |> List.indexedMap addToLocation

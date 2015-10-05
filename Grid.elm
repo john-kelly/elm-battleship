@@ -8,11 +8,17 @@ import Matrix
 
 
 -- Grid
+type alias IsHit = Bool
 type alias Grid = Matrix.Matrix Cell
 type Cell
-    = HitCell
-    | MissCell
-    | DefaultCell
-defaultGrid : Grid
-defaultGrid =
-    Matrix.repeat 10 10 DefaultCell
+    = Ship IsHit
+    | Empty IsHit
+    | Unknown
+
+defaultPrimaryGrid : Grid
+defaultPrimaryGrid =
+  Matrix.repeat 10 10 (Empty False)
+
+defaultTrackingGrid : Grid
+defaultTrackingGrid =
+  Matrix.repeat 10 10 Unknown

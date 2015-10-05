@@ -1,5 +1,8 @@
 module Location where
 
+-- NOTE intended to just be a light weight wrapper around a tuple. Using the
+-- tuple literal syntax should not be considered breaking the abstraction layer
+
 -- Core
 -- Evan
 -- 3rd Party
@@ -8,21 +11,18 @@ module Location where
 type alias Location = (Int, Int)
 
 init : Int -> Int -> Location
-init row column =
-  (row, column)
+init = (,)
 
 row : Location -> Int
-row location =
-  fst location
+row = fst
+
+column : Location -> Int
+column = snd
 
 addToRow : Int -> Location -> Location
 addToRow toAdd location =
-  init ((row location) + toAdd) (column location)
-
-column : Location -> Int
-column location =
-  snd location
+  (((row location) + toAdd), (column location))
 
 addToColumn : Int -> Location -> Location
 addToColumn toAdd location =
-  init (row location) ((column location) + toAdd)
+  ((row location), ((column location) + toAdd))

@@ -4,24 +4,26 @@ module Player where
 -- Evan
 -- 3rd Party
 -- Battleship
+import Fleet
+import Grid
 
 -- Player
 type alias Player =
-    { ships : Dict.Dict Int Ship
-    , primaryGrid : Grid
-    , trackingGrid : Grid
+    { fleet : Fleet.Fleet
+    , primaryGrid : Grid.Grid
+    , trackingGrid : Grid.Grid
     }
 defaultPlayer : Player
 defaultPlayer =
-    { ships = defaultShips
-    , primaryGrid = defaultGrid
-    , trackingGrid = defaultGrid
+    { fleet = Fleet.defaultFleet
+    , primaryGrid = Grid.defaultPrimaryGrid
+    , trackingGrid = Grid.defaultTrackingGrid
     }
 -- TODO Setup a random board for the computer.
 -- This will be different than the defaultPlayer function.
 defaultComputer : Player
 defaultComputer =
-    { ships = defaultShips
-    , primaryGrid = defaultGrid
-    , trackingGrid = defaultGrid
+    { fleet = Fleet.defaultFleet
+    , primaryGrid = Grid.defaultPrimaryGrid
+    , trackingGrid = Grid.defaultTrackingGrid
     }

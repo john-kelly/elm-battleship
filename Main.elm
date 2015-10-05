@@ -18,26 +18,26 @@ import Ship
 
 ---- MAIN ----
 main =
-    StartApp.start { model = defaultModel, view = view, update = update }
+  StartApp.start { model = defaultModel, view = view, update = update }
 
 ---- MODEL ----
 defaultModel : Model
 defaultModel =
-    { state = Setup
-    , player = Player.defaultPlayer
-    , computer = Player.defaultComputer
-    }
+  { state = Setup
+  , player = Player.defaultPlayer
+  , computer = Player.defaultComputer
+  }
 -- Model
 type alias Model =
-    { state : State
-    , player : Player.Player
-    , computer : Player.Player
-    }
+  { state : State
+  , player : Player.Player
+  , computer : Player.Player
+  }
 -- State
 type State
-    = Setup
-    | Play
-    | GameOver
+  = Setup
+  | Play
+  | GameOver
 
 ---- VIEW ----
 view : Signal.Address Action -> Model -> Html.Html

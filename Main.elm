@@ -160,10 +160,10 @@ addShip shipId player =
 
 canAddShip : Ship.Ship -> Grid.Grid -> Fleet.Fleet -> Bool
 canAddShip ship grid fleet =
-    -- order here is important for optimization. `shipInBounds` is cheap
-    if | not (shipInBounds ship grid) -> False
-       | shipOverlaps ship fleet -> False
-       | otherwise -> True
+  -- order here is important for optimization. `shipInBounds` is cheap
+  if | not (shipInBounds ship grid) -> False
+     | shipOverlaps ship fleet -> False
+     | otherwise -> True
 
 shipOverlaps : Ship.Ship -> Fleet.Fleet -> Bool
 shipOverlaps ship fleet =

@@ -44,6 +44,11 @@ updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
 updateShip shipId fn player =
   { player | fleet <- Fleet.updateShip shipId fn player.fleet }
 
+getShips : Player -> List Ship.Ship
+getShips player =
+  player.fleet
+    |> Fleet.toList
+
 canAddShip : Ship.Ship -> Player -> Bool
 canAddShip ship player =
   -- order here is important for optimization. `shipInBounds` is cheap

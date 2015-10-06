@@ -55,9 +55,9 @@ view address model =
 setupControlsView : Signal.Address Action -> Player.Player -> Html.Html
 setupControlsView address player =
   let
-  html = player.fleet
-    |> Fleet.toList
-    |> List.map (\ship -> shipFieldView address ship)
+  html = player
+    |> Player.getShips
+    |> List.map (shipFieldView address)
   in
   Html.div [] (html ++ [Html.text (toString player.fleet)])
 

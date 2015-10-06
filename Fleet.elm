@@ -6,7 +6,6 @@ module Fleet where
 
 -- Core
 import Dict
-import Maybe exposing (..)
 -- Evan
 -- 3rd Party
 -- Battleship

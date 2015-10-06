@@ -8,11 +8,7 @@ import Html.Attributes
 import Html.Events
 import StartApp.Simple as StartApp
 -- 3rd Party
-import Matrix
 -- Battleship
-import Fleet
-import Grid
-import Location
 import Player
 import Ship
 
@@ -62,6 +58,7 @@ setupControlsView address player =
   Html.div [] (html ++ [Html.text (toString player.fleet)])
 
 -- Depending on the Action render the proper html input.
+-- TODO this might belong in the Ship module
 shipFieldView : Signal.Address Action -> Ship.Ship -> Html.Html
 shipFieldView address ship =
   if not ship.added then

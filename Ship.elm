@@ -51,3 +51,9 @@ getShipCoordinates ship =
   in
     List.repeat ship.length ship.location
       |> List.indexedMap addToLocation
+
+toggleOrientation : Ship -> Ship
+toggleOrientation ship =
+  {ship |
+    orientation <- if ship.orientation == Vertical then Horizontal else Vertical
+  }

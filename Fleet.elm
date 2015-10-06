@@ -6,6 +6,7 @@ module Fleet where
 
 -- Core
 import Dict
+import Maybe exposing (..)
 -- Evan
 -- 3rd Party
 -- Battleship
@@ -54,3 +55,10 @@ toList : Fleet -> List Ship.Ship
 toList fleet =
   fleet.ships
     |> Dict.values
+
+updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Fleet -> Fleet
+updateShip shipId fn fleet =
+  { fleet |
+      ships <- fleet.ships
+        |> Dict.update shipId (Maybe.map fn)
+  }

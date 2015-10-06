@@ -67,12 +67,12 @@ shipFieldView address ship =
   if not ship.added then
     Html.div []
     [ Html.input -- Ship Row Input
-      [ Html.Attributes.value (toString (Location.row ship.location))
+      [ Html.Attributes.value (toString (Ship.getRow ship))
       , Html.Events.on "input" Html.Events.targetValue (Signal.message address << SetupRowField ship.id)
       ]
       []
     , Html.input -- Ship Column Input
-      [ Html.Attributes.value (toString (Location.column ship.location))
+      [ Html.Attributes.value (toString (Ship.getColumn ship))
       , Html.Events.on "input" Html.Events.targetValue (Signal.message address << SetupColumnField ship.id)
       ]
       []
@@ -101,44 +101,21 @@ update : Action -> Model -> Model
 update action model =
   case action of
     SetupOrientationField shipId ->
-      let
-      player = model.player
-
-      updateShip ship =
-        if ship.id == shipId then
-          { ship | orientation <- toggleOrientation ship.orientation }
-        else
-          ship
-      in
-      { model | player <- { player | fleet <- (Fleet.map updateShip player.fleet) } }
+      { model | player <- Player.updateShip shipId Ship.toggleOrientation model.player }
     SetupRowField shipId rowAsString ->
       let
-      player = model.player
-
-      updateShip ship =
-        if ship.id == shipId then
-          Ship.setRow (toIntOrDefaultOrZero rowAsString (Ship.getRow ship)) ship
-        else
-          ship
+      updateRow ship =
+        Ship.setRow (toIntOrDefaultOrZero rowAsString (Ship.getRow ship)) ship
       in
-      { model | player <- { player | fleet <- (Fleet.map updateShip player.fleet) } }
+      { model | player <- Player.updateShip shipId updateRow model.player }
     SetupColumnField shipId columnAsString ->
       let
-      player = model.player
-
-      updateShip ship =
-        if ship.id == shipId then
-          Ship.setColumn (toIntOrDefaultOrZero columnAsString (Ship.getColumn ship)) ship
-        else
-          ship
+      updateColumn ship =
+        Ship.setColumn (toIntOrDefaultOrZero columnAsString (Ship.getColumn ship)) ship
       in
-      { model | player <- { player | fleet <- (Fleet.map updateShip player.fleet) } }
+      { model | player <- Player.updateShip shipId updateColumn model.player }
     SetupAddShip shipId ->
       { model | player <- Player.addShip shipId model.player}
-
-toggleOrientation : Ship.Orientation -> Ship.Orientation
-toggleOrientation orientation =
-  if orientation == Ship.Vertical then Ship.Horizontal else Ship.Vertical
 
 toIntOrDefaultOrZero : String -> Int -> Int
 toIntOrDefaultOrZero stringToConvert default =

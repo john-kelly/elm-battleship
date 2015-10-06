@@ -46,6 +46,10 @@ addShip shipId player =
   in
   { player | fleet <- (Fleet.map updateShip player.fleet) }
 
+updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
+updateShip shipId fn player =
+  { player | fleet <- Fleet.updateShip shipId fn player.fleet }
+
 canAddShip : Ship.Ship -> Player -> Bool
 canAddShip ship player =
   -- order here is important for optimization. `shipInBounds` is cheap

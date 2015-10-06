@@ -35,16 +35,10 @@ defaultComputer =
     , trackingGrid = Grid.defaultTrackingGrid
     }
 
+-- TODO
 addShip : Int -> Player -> Player
 addShip shipId player =
-  let
-  updateShip ship =
-    if ship.id == shipId then
-      {ship | added <- (canAddShip ship player) }
-    else
-      ship
-  in
-  { player | fleet <- (Fleet.map updateShip player.fleet) }
+  updateShip shipId identity player
 
 updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
 updateShip shipId fn player =

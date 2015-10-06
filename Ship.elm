@@ -54,6 +54,6 @@ getShipCoordinates ship =
 
 toggleOrientation : Ship -> Ship
 toggleOrientation ship =
-  {ship |
+  { ship |
     orientation <- if ship.orientation == Vertical then Horizontal else Vertical
   }

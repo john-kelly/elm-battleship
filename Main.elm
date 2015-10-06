@@ -134,7 +134,7 @@ update action model =
       in
       { model | player <- { player | fleet <- (Fleet.map updateShip player.fleet) } }
     SetupAddShip shipId ->
-      { model | player <- addShip shipId model.player}
+      { model | player <- Player.addShip shipId model.player}
 
 toggleOrientation : Ship.Orientation -> Ship.Orientation
 toggleOrientation orientation =
@@ -146,46 +146,3 @@ toIntOrDefaultOrZero stringToConvert default =
   case String.toInt stringToConvert of
     Ok n -> n
     _ -> default
-
-addShip : Int -> Player.Player -> Player.Player
-addShip shipId player =
-  let
-  updateShip ship =
-    if ship.id == shipId then
-      {ship | added <- (canAddShip ship player.primaryGrid player.fleet) }
-    else
-      ship
-  in
-  { player | fleet <- (Fleet.map updateShip player.fleet) }
-
-canAddShip : Ship.Ship -> Grid.Grid -> Fleet.Fleet -> Bool
-canAddShip ship grid fleet =
-  -- order here is important for optimization. `shipInBounds` is cheap
-  if | not (shipInBounds ship grid) -> False
-     | shipOverlaps ship fleet -> False
-     | otherwise -> True
-
-shipOverlaps : Ship.Ship -> Fleet.Fleet -> Bool
-shipOverlaps ship fleet =
-  let
-  shipCoordinates = Ship.getShipCoordinates ship
-  in
-  fleet
-    |> Fleet.toList
-    |> List.filter .added
-    |> List.map Ship.getShipCoordinates
-    |> List.concat
-    |> List.foldr (\coord acc -> (List.member coord shipCoordinates) || acc) False
-
-shipInBounds : Ship.Ship -> Grid.Grid -> Bool
-shipInBounds ship grid =
-  let
-  gridH = Matrix.height grid
-  gridW = Matrix.width grid
-  isInBounds (shipRow, shipColumn) =
-    shipRow >= 0 && shipRow < gridH && shipColumn >= 0 && shipColumn < gridW
-  in
-  ship
-    |> Ship.getShipCoordinates
-    |> List.map isInBounds
-    |> List.all identity

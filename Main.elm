@@ -73,29 +73,68 @@ setupControlsView address player =
 shipFieldView : Signal.Address Action -> Ship.Ship -> Html.Html
 shipFieldView address ship =
   if not ship.added then
-    Html.div []
+    Html.div [ Html.Attributes.style [("margin-bottom", "5px")] ]
     [ Html.input -- Ship Row Input
       [ Html.Attributes.value (toString (Ship.getRow ship))
       , Html.Events.on "input" Html.Events.targetValue (Signal.message address << SetupRowField ship.id)
       ]
       []
     , Html.input -- Ship Column Input
-      [ Html.Attributes.value (toString (Ship.getColumn ship))
+      [ Html.Attributes.style [("margin-right", "5px")]
+      , Html.Attributes.value (toString (Ship.getColumn ship))
       , Html.Events.on "input" Html.Events.targetValue (Signal.message address << SetupColumnField ship.id)
       ]
       []
-    , Html.input -- Ship Orientation
-      [ Html.Attributes.type' "radio"
-      , Html.Attributes.checked (ship.orientation == Ship.Horizontal)
-      , Html.Events.onClick address (SetupOrientationField ship.id)
-      ]
-      []
+      -- Ship orientation:
+    , orientationSwitch address ship.id ship.orientation
     , Html.button -- Add Ship
       [ Html.Events.onClick address (SetupAddShip ship.id)
       ]
-      []
+      [ Html.text "Add ship" ]
     ]
   else Html.div [] []
+
+orientationSwitch : Signal.Address Action -> Int -> Ship.Orientation -> Html.Html
+orientationSwitch address shipId orientation =
+  let
+    outerDivStyle = Html.Attributes.style
+      [ ("display", "inline-block")
+      , ("border", "1px solid gray")
+      , ("border-radius", "4px")
+      , ("margin-right", "5px")
+      -- Fix the border-radius corners glitch
+      , ("overflow", "auto"), ("vertical-align", "middle")
+      ]
+    innerDivStyle =
+      [ ("display", "inline-block")
+      , ("padding", "5px")
+      , ("cursor", "pointer")
+      ]
+    hCheckedStyle =
+      case orientation of
+        Ship.Horizontal ->
+          ("background-color", "#DCDCDC")
+        Ship.Vertical ->
+          ("background-color", "white")
+    vCheckedStyle =
+      case orientation of
+        Ship.Horizontal ->
+          ("background-color", "white")
+        Ship.Vertical ->
+          ("background-color", "#DCDCDC")
+  in
+  Html.div [outerDivStyle]
+  [ Html.div
+    [ Html.Attributes.style <| ("border-right", "1px solid gray") :: hCheckedStyle :: innerDivStyle
+    , Html.Events.onMouseDown address (SetupOrientationField shipId)
+    ]
+    [ Html.text "Horizontal" ]
+  , Html.div
+    [ Html.Attributes.style <| vCheckedStyle :: innerDivStyle
+    , Html.Events.onMouseDown address (SetupOrientationField shipId)
+    ]
+    [ Html.text "Vertical" ]
+  ]
 
 ---- UPDATE ----
 type Action

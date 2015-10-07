@@ -7,6 +7,7 @@ module Player where
 
 -- Core
 -- Evan
+import Html
 -- 3rd Party
 import Matrix
 -- Battleship
@@ -97,3 +98,7 @@ shipInBounds ship grid =
     |> Ship.getShipCoordinates
     |> List.map isInBounds
     |> List.all identity
+
+toHtml : Player -> Html.Html
+toHtml player =
+  Html.div [] [Grid.toHtml player.primaryGrid, Grid.toHtml player.trackingGrid]

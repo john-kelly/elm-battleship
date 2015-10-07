@@ -43,10 +43,16 @@ view address model =
     Setup -> setupControlsView address model.player
     Play ->
       Html.div []
-        [ Html.div [] [ Html.text (toString model) ] ]
+        [ Html.div []
+          [ Html.div [] [ Html.text "Player1" ]
+          , Player.toHtml model.player
+          , Html.div [] [ Html.text "Player2" ]
+          , Player.toHtml model.computer
+          ]
+        ]
     GameOver ->
       Html.div []
-        [ Html.div [] [ Html.text (toString model) ] ]
+        [ Html.div [] [ Player.toHtml model.player, Player.toHtml model.computer ] ]
 
 
 setupControlsView : Signal.Address Action -> Player.Player -> Html.Html
@@ -59,7 +65,7 @@ setupControlsView address player =
       |> Player.getShips
       |> List.map (shipFieldView address)
     in
-    Html.div [] (html ++ [Html.text (toString player.fleet), Grid.toHtml player.primaryGrid])
+    Html.div [] (html ++ [Grid.toHtml player.primaryGrid])
 
 
 -- Depending on the Action render the proper html input.

@@ -3,6 +3,7 @@ module Grid where
 -- Core
 -- Evan
 import Html
+import Html.Attributes
 -- 3rd Party
 import Matrix
 import Matrix.Extra
@@ -17,6 +18,13 @@ type Cell
     = Ship IsHit
     | Empty IsHit
     | Unknown
+
+cellToString : Cell -> String
+cellToString cell =
+  case cell of
+    Ship isHit -> if isHit then "X" else "S"
+    Empty isHit -> if isHit then "O" else " "
+    Unknown -> "?"
 
 defaultPrimaryGrid : Grid
 defaultPrimaryGrid =
@@ -46,4 +54,8 @@ addShip ship grid =
 
 toHtml : Grid -> Html.Html
 toHtml grid =
-  Matrix.Extra.prettyPrint grid
+  Html.div [ Html.Attributes.style [("display", "inline-block")] ]
+  [ grid
+      |> Matrix.map cellToString
+      |> Matrix.Extra.prettyPrint
+  ]

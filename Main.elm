@@ -9,6 +9,7 @@ import Html.Events
 import StartApp.Simple as StartApp
 -- 3rd Party
 -- Battleship
+import Grid
 import Player
 import Ship
 
@@ -50,12 +51,16 @@ view address model =
 
 setupControlsView : Signal.Address Action -> Player.Player -> Html.Html
 setupControlsView address player =
-  let
-  html = player
-    |> Player.getShips
-    |> List.map (shipFieldView address)
-  in
-  Html.div [] (html ++ [Html.text (toString player.fleet)])
+  if Player.allShipsAdded player then
+    Html.button [ Html.Events.onClick address SetupPlay ] []
+  else
+    let
+    html = player
+      |> Player.getShips
+      |> List.map (shipFieldView address)
+    in
+    Html.div [] (html ++ [Html.text (toString player.fleet), Grid.toHtml player.primaryGrid])
+
 
 -- Depending on the Action render the proper html input.
 -- TODO this might belong in the Ship module
@@ -92,7 +97,7 @@ type Action
   | SetupRowField Int String
   | SetupColumnField Int String
   | SetupAddShip Int
-  | PlayShoot
+  | SetupPlay
 
 update : Action -> Model -> Model
 update action model =
@@ -113,6 +118,8 @@ update action model =
       { model | player <- Player.updateShip shipId updateColumn model.player }
     SetupAddShip shipId ->
       { model | player <- Player.addShip shipId model.player}
+    SetupPlay ->
+      { model | state <- Play }
 
 toIntOrDefaultOrZero : String -> Int -> Int
 toIntOrDefaultOrZero stringToConvert default =

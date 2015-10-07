@@ -57,3 +57,11 @@ toggleOrientation ship =
   { ship |
     orientation <- if ship.orientation == Vertical then Horizontal else Vertical
   }
+
+setAdded : Bool -> Ship -> Ship
+setAdded bool ship =
+  {ship | added <- bool}
+
+setAddedTrue : Ship -> Ship
+setAddedTrue ship =
+  setAdded True ship

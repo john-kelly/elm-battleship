@@ -43,6 +43,10 @@ addShip ship fleet =
       shipsSeen <- fleet.shipsSeen + 1
   }
 
+getShip : Int -> Fleet -> Maybe Ship.Ship
+getShip shipId fleet =
+  Dict.get shipId fleet.ships
+
 map : (Ship.Ship -> Ship.Ship) -> Fleet -> Fleet
 map fn fleet =
   { fleet |

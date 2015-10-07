@@ -35,10 +35,25 @@ defaultComputer =
     , trackingGrid = Grid.defaultTrackingGrid
     }
 
--- TODO
 addShip : Int -> Player -> Player
 addShip shipId player =
-  updateShip shipId identity player
+  case Fleet.getShip shipId player.fleet of
+    Just ship ->
+      if canAddShip ship player then
+        { player |
+            fleet <- Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
+            primaryGrid <- Grid.addShip ship player.primaryGrid
+        }
+      else
+        player
+    _ -> player
+
+allShipsAdded : Player -> Bool
+allShipsAdded player =
+  player
+    |> getShips
+    |> List.map .added
+    |> List.all identity
 
 updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
 updateShip shipId fn player =
@@ -73,8 +88,8 @@ shipOverlaps ship fleet =
 shipInBounds : Ship.Ship -> Grid.Grid -> Bool
 shipInBounds ship grid =
   let
-  gridH = Matrix.height grid
-  gridW = Matrix.width grid
+  gridH = Grid.getHeight grid
+  gridW = Grid.getWidth grid
   isInBounds (shipRow, shipColumn) =
     shipRow >= 0 && shipRow < gridH && shipColumn >= 0 && shipColumn < gridW
   in

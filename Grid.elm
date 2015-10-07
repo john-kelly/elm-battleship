@@ -59,7 +59,6 @@ cellToHtml cell =
       ]
     box color = Html.div
       [ Html.Attributes.style <| ("background-color", color) :: style
-      , Html.Attributes.class "cell"
       ] []
   in
   case cell of
@@ -92,12 +91,7 @@ toHtmlRows matrixHtml =
 
 toHtml : Grid -> Html.Html
 toHtml grid =
-  Html.div [ Html.Attributes.class "battlefield",
-    Html.Attributes.style
-    [ ("display", "inline-block")
-    , ("margin-top", "30px")
-    ]
-  ]
+  Html.div [Html.Attributes.class "battlefield"]
   (grid
     |> Matrix.map cellToHtml
     |> toHtmlRows)

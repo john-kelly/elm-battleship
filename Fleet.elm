@@ -1,4 +1,4 @@
-module Fleet (Fleet, defaultFleet, getShip, updateShip, toList) where
+module Fleet where
 
 -- NOTE
 -- serve as a wrapper around a Dict of ships so that we can give each added

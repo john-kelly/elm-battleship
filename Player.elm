@@ -1,4 +1,4 @@
-module Player (Player, defaultPlayer, defaultComputer, toHtml, allShipsAdded, getShips, updateShip, addShip) where
+module Player where
 
 -- The player manages the syn b/w the ships in a fleet and the grid.
 -- There is an implicit invariant b/w a ship a fleet and a grid which is that if
@@ -101,7 +101,4 @@ shipInBounds ship grid =
 
 toHtml : Player -> Html.Html
 toHtml player =
-  Html.div []
-  [ Grid.toHtml player.primaryGrid
-  --, Grid.toHtml player.trackingGrid
-  ]
+  Html.div [] [Grid.toHtml player.primaryGrid, Grid.toHtml player.trackingGrid]

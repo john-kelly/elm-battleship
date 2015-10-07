@@ -1,4 +1,4 @@
-module Battleship (main) where
+module Battleship where
 
 -- Core
 import String
@@ -37,13 +37,7 @@ type State
   | GameOver
 
 ---- VIEW ----
-wrapper htmlList =
-  Html.div
-    [ Html.Attributes.style
-      [ ("margin", "50px")
-      , ("text-align", "center")
-      ]
-    ] htmlList
+wrapper htmlList = Html.div [ Html.Attributes.style [("margin", "50px")]] htmlList
 
 view : Signal.Address Action -> Model -> Html.Html
 view address model =
@@ -66,7 +60,7 @@ view address model =
 setupControlsView : Signal.Address Action -> Player.Player -> Html.Html
 setupControlsView address player =
   if Player.allShipsAdded player then
-    Html.button [ Html.Events.onClick address SetupPlay ] [ Html.text "Start the game!" ]
+    Html.button [ Html.Events.onClick address SetupPlay ] []
   else
     let
     html = player

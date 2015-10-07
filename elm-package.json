@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "Battleship game written in Elm",
-    "repository": "https://github.com/john-kelly/elm-battleship",
+    "repository": "https://github.com/john-kelly/elm-battleship.git",
     "license": "BSD3",
     "source-directories": [
         "."

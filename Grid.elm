@@ -1,6 +1,7 @@
-module Grid where
+module Grid ( Grid, toHtml , defaultPrimaryGrid , defaultTrackingGrid , addShip , getHeight , getWidth ) where
 
 -- Core
+import Array -- For matrix conversion
 -- Evan
 import Html
 import Html.Attributes
@@ -10,21 +11,14 @@ import Matrix.Extra
 -- Battleship
 import Ship
 
-
 -- Grid
 type alias IsHit = Bool
 type alias Grid = Matrix.Matrix Cell
 type Cell
     = Ship IsHit
     | Empty IsHit
+    -- TODO: Sunk state
     | Unknown
-
-cellToString : Cell -> String
-cellToString cell =
-  case cell of
-    Ship isHit -> if isHit then "X" else "S"
-    Empty isHit -> if isHit then "O" else " "
-    Unknown -> "?"
 
 defaultPrimaryGrid : Grid
 defaultPrimaryGrid =
@@ -52,10 +46,52 @@ addShip ship grid =
   shipCoordinates
     |> List.foldr setToShip grid
 
+cellToHtml : Cell -> Html.Html
+cellToHtml cell =
+  let
+    style =
+      [ ("display", "inline-block")
+      , ("height", "40px")
+      , ("width", "40px")
+      , ("border-radius", "5px")
+      , ("vertical-align", "top") -- Fix horizontal spaces
+      , ("margin", "1px")
+      ]
+    box color = Html.div
+      [ Html.Attributes.style <| ("background-color", color) :: style
+      ] []
+  in
+  case cell of
+    Ship isHit ->
+      if isHit then -- "X"
+        box "#F60018" -- Red
+      else -- "S"
+        box "#808080" -- Gray
+    Empty isHit ->
+      if isHit then -- "O"
+        box "white"
+      else -- " "
+        box "#99C2E1" -- Light blue
+    Unknown -> -- "?"
+      box "yellow"
+
+toHtmlRows : Matrix.Matrix Html.Html -> List Html.Html
+toHtmlRows matrixHtml =
+  let
+    rowNumbers = [0..(Matrix.height matrixHtml)-1]
+    maybeArrayToList : Maybe (Array.Array a) -> List a
+    maybeArrayToList array =
+      case array of
+        Just ary -> Array.toList ary
+        Nothing -> []
+    transform rowNum list =
+      (Html.div [] <| maybeArrayToList <| Matrix.getRow rowNum matrixHtml) :: list
+  in
+    List.foldr transform [] rowNumbers
+
 toHtml : Grid -> Html.Html
 toHtml grid =
-  Html.div [ Html.Attributes.style [("display", "inline-block")] ]
-  [ grid
-      |> Matrix.map cellToString
-      |> Matrix.Extra.prettyPrint
-  ]
+  Html.div [Html.Attributes.class "battlefield"]
+  (grid
+    |> Matrix.map cellToHtml
+    |> toHtmlRows)

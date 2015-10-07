@@ -37,12 +37,14 @@ type State
   | GameOver
 
 ---- VIEW ----
+wrapper htmlList = Html.div [ Html.Attributes.style [("margin", "50px")]] htmlList
+
 view : Signal.Address Action -> Model -> Html.Html
 view address model =
   case model.state of
     Setup -> setupControlsView address model.player
     Play ->
-      Html.div []
+      wrapper
         [ Html.div []
           [ Html.div [] [ Html.text "Player1" ]
           , Player.toHtml model.player
@@ -51,7 +53,7 @@ view address model =
           ]
         ]
     GameOver ->
-      Html.div []
+      wrapper
         [ Html.div [] [ Player.toHtml model.player, Player.toHtml model.computer ] ]
 
 
@@ -65,7 +67,7 @@ setupControlsView address player =
       |> Player.getShips
       |> List.map (shipFieldView address)
     in
-    Html.div [] (html ++ [Grid.toHtml player.primaryGrid])
+    wrapper (html ++ [Grid.toHtml player.primaryGrid])
 
 
 -- Depending on the Action render the proper html input.

@@ -1,4 +1,4 @@
-module Ship where
+module Ship {-(Ship, Orientation, init, getShipCoordinates)-} where
 
 -- Core
 -- Evan
@@ -24,6 +24,10 @@ init length orientation location =
   , location = location
   , added = False
   }
+
+setLocation : Loc.Location -> Ship -> Ship
+setLocation newLocation ship =
+  { ship | location <- newLocation }
 
 setRow : Int -> Ship -> Ship
 setRow row ship =

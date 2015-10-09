@@ -101,9 +101,6 @@ setupControlsView address player selectedShipId =
     let
     html = Html.div [Html.Attributes.style ["display" := "inline-block", "text-align" := "right"]] <|
       List.map (shipFieldView address selectedShipId) (Player.getShips player)
-        --player
-        --  |> Player.getShips
-        --  |> List.map (shipFieldView address)
     in
     wrapper (html :: [Grid.toHtml hoverClick player.primaryGrid])
 
@@ -276,10 +273,3 @@ update action model =
     PlayAim position ->
       model
     PlayShoot _ -> model
-
-toIntOrDefaultOrZero : String -> Int -> Int
-toIntOrDefaultOrZero stringToConvert default =
-  if stringToConvert == "" then 0 else
-  case String.toInt stringToConvert of
-    Ok n -> n
-    _ -> default

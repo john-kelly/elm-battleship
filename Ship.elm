@@ -1,4 +1,4 @@
-module Ship {-(Ship, Orientation, init, getShipCoordinates)-} where
+module Ship {-(Ship, Orientation, init, getShipCoordinates, hasCoord)-} where
 
 -- Core
 -- Evan
@@ -44,6 +44,11 @@ setColumn column ship =
 getColumn : Ship -> Int
 getColumn ship =
   Loc.column ship.location
+
+hasCoordinate : Loc.Location -> Ship -> Bool
+hasCoordinate coord ship =
+  getShipCoordinates ship
+    |> List.member coord
 
 getShipCoordinates : Ship -> List Loc.Location
 getShipCoordinates ship =

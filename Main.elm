@@ -2,14 +2,11 @@ module Battleship (main) where
 
 -- Core
 import String
-import Keyboard
-import Task
 -- Evan
-import Effects
 import Html
 import Html.Attributes
 import Html.Events
-import StartApp
+import StartApp.Simple as StartApp
 -- 3rd Party
 -- Battleship
 import Grid
@@ -19,12 +16,7 @@ import Ship
 
 ---- MAIN ----
 main =
-  .html <| StartApp.start
-    { init = (defaultModel, Effects.none)
-    , view = view
-    , update = (\ a m -> (update a m, Effects.none))
-    , inputs = []
-    }
+  StartApp.start { model = defaultModel, view = view, update = update }
 
 ---- MODEL ----
 defaultModel : Model
@@ -67,10 +59,11 @@ view address model =
       { hover = Signal.forwardTo address PlayAim
       , click = Signal.forwardTo address PlayShoot
       }
+    selectedShipId = model.selectedShipId
   in
   case model.state of
     Setup ->
-      setupControlsView address model.player model.selectedShipId
+      setupControlsView address model.player selectedShipId
     Play ->
       wrapper
         [ Html.div []
@@ -82,9 +75,11 @@ view address model =
         ]
     GameOver ->
       wrapper
+      --[ Html.div []
         [ Player.toHtml Nothing model.player
         , Player.toHtml Nothing model.computer
         ]
+      --]
 
 
 setupControlsView : Signal.Address Action -> Player.Player -> Maybe Int -> Html.Html
@@ -101,6 +96,9 @@ setupControlsView address player selectedShipId =
     let
     html = Html.div [Html.Attributes.style ["display" := "inline-block", "text-align" := "right"]] <|
       List.map (shipFieldView address selectedShipId) (Player.getShips player)
+        --player
+        --  |> Player.getShips
+        --  |> List.map (shipFieldView address)
     in
     wrapper (html :: [Grid.toHtml hoverClick player.primaryGrid])
 
@@ -125,8 +123,6 @@ shipFieldView address selectedShipId ship  =
       -- Ship orientation:
     , orientationSwitch address ship.id ship.orientation
     ]
-
-
 
 shipListView : Signal.Address Action -> Ship.Ship -> Bool -> Html.Html
 shipListView address ship isSelected =
@@ -206,7 +202,6 @@ orientationSwitch address shipId orientation =
 ---- UPDATE ----
 type Action
   = SetupOrientationField Int
-  | SetupOrientationToggle
   | SetupSelectShip (Maybe Int)
   | SetupShowShip (Maybe (Int, Int))
   | SetupAddShip ()
@@ -219,12 +214,6 @@ update action model =
   case action of
     SetupOrientationField shipId ->
       { model | player <- Player.updateShip shipId Ship.toggleOrientation model.player }
-    SetupOrientationToggle ->
-      case model.selectedShipId of
-        Just id ->
-          { model | player <- Player.updateShip id Ship.toggleOrientation model.player }
-        Nothing ->
-          model
     SetupSelectShip shipId ->
       { model | selectedShipId <- shipId }
     SetupShowShip position ->
@@ -273,3 +262,10 @@ update action model =
     PlayAim position ->
       model
     PlayShoot _ -> model
+
+toIntOrDefaultOrZero : String -> Int -> Int
+toIntOrDefaultOrZero stringToConvert default =
+  if stringToConvert == "" then 0 else
+  case String.toInt stringToConvert of
+    Ok n -> n
+    _ -> default

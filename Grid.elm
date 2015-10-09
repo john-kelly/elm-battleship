@@ -47,24 +47,41 @@ addShip ship grid =
   in
     List.foldr setToShip grid shipCoordinates
 
-setShip : Cell -> Ship.Ship -> Fleet.Fleet -> Grid -> Grid
-setShip newCell ship fleet grid =
-  let transform col row oldCell =
-    if Ship.hasCoordinate (row, col) ship then newCell else oldCell
+showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+showShip ship fleet grid =
+  let
+    shipCoordinates = Ship.getShipCoordinates ship
+    transform x y cell =
+      if List.member (y,x) shipCoordinates then
+        (Ship False)
+      else
+        cell
   in
     if canAddShip ship fleet grid then
-      grid
-        |> Matrix.indexedMap transform
+      Matrix.indexedMap transform grid
     else
       grid
 
-showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
-showShip ship fleet grid =
-  setShip (Ship False) ship fleet grid
-
 hideShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
 hideShip ship fleet grid =
-  setShip (Empty False) ship fleet grid
+  let
+    shipCoordinates = Ship.getShipCoordinates ship
+    addedShipsCoords = fleet
+      |> Fleet.toList
+      |> List.filter .added
+      |> List.map Ship.getShipCoordinates
+      |> List.concat
+    condition x y =
+      List.member (y,x) shipCoordinates
+    condition2 x y =
+      not <| List.member (y,x) addedShipsCoords
+    transform x y cell =
+      if (condition x y) && (condition2 x y) then
+        (Empty False)
+      else
+        cell
+  in
+    Matrix.indexedMap transform grid
 
 canAddShip : Ship.Ship -> Fleet.Fleet -> Grid -> Bool
 canAddShip ship fleet grid =

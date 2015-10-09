@@ -49,6 +49,18 @@ addShip shipId player =
         player
     Nothing -> player
 
+{-
+showShip : Ship.Ship -> Fleet.Fleet -> Grid.Grid -> Grid.Grid
+showShip ship fleet grid =
+  if canAddShip ship fleet grid then
+    Grid.showShip ship grid
+  else
+    grid
+-}
+--hideShip : Ship.Ship -> Fleet.Fleet -> Grid.Grid -> Grid.Grid
+--hideShip ship fleet grid =
+--  Grid.hideShip ship grid
+
 allShipsAdded : Player -> Bool
 allShipsAdded player =
   player

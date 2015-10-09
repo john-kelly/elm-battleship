@@ -1,15 +1,17 @@
-module Grid where
+module Grid ( Grid, Context, toHtml, defaultPrimaryGrid, defaultTrackingGrid, canAddShip, addShip, showShip, hideShip, getHeight, getWidth ) where
 
 -- Core
+import Array -- For matrix conversion
 -- Evan
 import Html
 import Html.Attributes
+import Html.Events
 -- 3rd Party
 import Matrix
 import Matrix.Extra
 -- Battleship
 import Ship
-
+import Fleet
 
 -- Grid
 type alias IsHit = Bool
@@ -17,14 +19,8 @@ type alias Grid = Matrix.Matrix Cell
 type Cell
     = Ship IsHit
     | Empty IsHit
+    -- TODO: Sunk state
     | Unknown
-
-cellToString : Cell -> String
-cellToString cell =
-  case cell of
-    Ship isHit -> if isHit then "X" else "S"
-    Empty isHit -> if isHit then "O" else " "
-    Unknown -> "?"
 
 defaultPrimaryGrid : Grid
 defaultPrimaryGrid =
@@ -49,13 +45,136 @@ addShip ship grid =
   -- This is a bit tricky. Matrix.set takes col then row!!!
   setToShip (row, column) = Matrix.set column row (Ship False)
   in
-  shipCoordinates
-    |> List.foldr setToShip grid
+    List.foldr setToShip grid shipCoordinates
 
-toHtml : Grid -> Html.Html
-toHtml grid =
-  Html.div [ Html.Attributes.style [("display", "inline-block")] ]
-  [ grid
-      |> Matrix.map cellToString
-      |> Matrix.Extra.prettyPrint
-  ]
+setShip : Cell -> Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+setShip newCell ship fleet grid =
+  let transform col row oldCell =
+    if Ship.hasCoordinate (row, col) ship then newCell else oldCell
+  in
+    if canAddShip ship fleet grid then
+      grid
+        |> Matrix.indexedMap transform
+    else
+      grid
+
+showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+showShip ship fleet grid =
+  setShip (Ship False) ship fleet grid
+
+hideShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+hideShip ship fleet grid =
+  setShip (Empty False) ship fleet grid
+
+canAddShip : Ship.Ship -> Fleet.Fleet -> Grid -> Bool
+canAddShip ship fleet grid =
+  -- order here is important for optimization. `shipInBounds` is cheap
+  if | not (shipInBounds ship grid) -> False
+     | shipOverlaps ship fleet -> False
+     | otherwise -> True
+
+-- private helper for canAddShip
+shipOverlaps : Ship.Ship -> Fleet.Fleet -> Bool
+shipOverlaps ship fleet =
+  let
+  shipCoordinates = Ship.getShipCoordinates ship
+  in
+  fleet
+    |> Fleet.toList
+    |> List.filter .added
+    |> List.map Ship.getShipCoordinates
+    |> List.concat
+    |> List.foldr (\coord acc -> (List.member coord shipCoordinates) || acc) False
+
+-- private helper for canAddShip
+shipInBounds : Ship.Ship -> Grid -> Bool
+shipInBounds ship grid =
+  let
+  gridH = getHeight grid
+  gridW = getWidth grid
+  isInBounds (shipRow, shipColumn) =
+    shipRow >= 0 && shipRow < gridH && shipColumn >= 0 && shipColumn < gridW
+  in
+  ship
+    |> Ship.getShipCoordinates
+    |> List.map isInBounds
+    |> List.all identity
+
+type alias Context =
+  { hover : Signal.Address (Maybe (Int, Int))
+  , click : Signal.Address ()
+  }
+
+cellToHtml : Maybe Context -> Int -> Int -> Cell -> Html.Html
+cellToHtml hoverClick y x cell =
+  let
+    pos = (x, y)
+    style =
+      [ ("display", "inline-block")
+      , ("height", "40px")
+      , ("width", "40px")
+      , ("border-radius", "5px")
+      , ("vertical-align", "top") -- Fix horizontal spaces
+      , ("margin", "1px")
+      ]
+    adm =
+      case hoverClick of
+        Just hc ->
+          [ Html.Events.onMouseEnter hc.hover (Just pos)
+          , Html.Events.onClick hc.click ()
+          ]
+        Nothing ->
+          []
+    box color = Html.div
+      ([ Html.Attributes.style <| ("background-color", color) :: style
+       , Html.Attributes.class "cell"
+       ] ++ adm) []
+  in
+  case cell of
+    Ship isHit ->
+      if isHit then -- "X"
+        box "#F60018" -- Red
+      else -- "S"
+        box "#808080" -- Gray
+    Empty isHit ->
+      if isHit then -- "O"
+        box "white"
+      else -- " "
+        box "#99C2E1" -- Light blue
+    Unknown -> -- "?"
+      box "yellow"
+
+toHtmlRows : Matrix.Matrix Html.Html -> List Html.Html
+toHtmlRows matrixHtml =
+  let
+    rowNumbers = [0..(Matrix.height matrixHtml)-1]
+    maybeArrayToList : Maybe (Array.Array a) -> List a
+    maybeArrayToList array =
+      case array of
+        Just ary -> Array.toList ary
+        Nothing -> []
+    transform rowNum list =
+      (Html.div [] <| maybeArrayToList <| Matrix.getRow rowNum matrixHtml) :: list
+  in
+    List.foldr transform [] rowNumbers
+
+toHtml : Maybe Context -> Grid -> Html.Html
+toHtml context grid =
+  let
+    event =
+      case context of
+        Just adm ->
+          [Html.Events.onMouseLeave adm.hover Nothing]
+        Nothing ->
+          []
+  in
+  Html.div
+  ([ Html.Attributes.class "battlefield"
+    , Html.Attributes.style
+      [ ("display", "inline-block")
+      , ("margin-top", "30px")
+      ]
+    ] ++ event)
+  (grid
+    |> Matrix.indexedMap (cellToHtml context)
+    |> toHtmlRows)

@@ -2,11 +2,14 @@ module Battleship (main) where
 
 -- Core
 import String
+import Keyboard
+import Task
 -- Evan
+import Effects
 import Html
 import Html.Attributes
 import Html.Events
-import StartApp.Simple as StartApp
+import StartApp
 -- 3rd Party
 -- Battleship
 import Grid
@@ -16,7 +19,12 @@ import Ship
 
 ---- MAIN ----
 main =
-  StartApp.start { model = defaultModel, view = view, update = update }
+  .html <| StartApp.start
+    { init = (defaultModel, Effects.none)
+    , view = view
+    , update = (\ a m -> (update a m, Effects.none))
+    , inputs = []
+    }
 
 ---- MODEL ----
 defaultModel : Model
@@ -59,11 +67,10 @@ view address model =
       { hover = Signal.forwardTo address PlayAim
       , click = Signal.forwardTo address PlayShoot
       }
-    selectedShipId = model.selectedShipId
   in
   case model.state of
     Setup ->
-      setupControlsView address model.player selectedShipId
+      setupControlsView address model.player model.selectedShipId
     Play ->
       wrapper
         [ Html.div []
@@ -75,11 +82,9 @@ view address model =
         ]
     GameOver ->
       wrapper
-      --[ Html.div []
         [ Player.toHtml Nothing model.player
         , Player.toHtml Nothing model.computer
         ]
-      --]
 
 
 setupControlsView : Signal.Address Action -> Player.Player -> Maybe Int -> Html.Html
@@ -123,6 +128,8 @@ shipFieldView address selectedShipId ship  =
       -- Ship orientation:
     , orientationSwitch address ship.id ship.orientation
     ]
+
+
 
 shipListView : Signal.Address Action -> Ship.Ship -> Bool -> Html.Html
 shipListView address ship isSelected =
@@ -202,6 +209,7 @@ orientationSwitch address shipId orientation =
 ---- UPDATE ----
 type Action
   = SetupOrientationField Int
+  | SetupOrientationToggle
   | SetupSelectShip (Maybe Int)
   | SetupShowShip (Maybe (Int, Int))
   | SetupAddShip ()
@@ -214,6 +222,12 @@ update action model =
   case action of
     SetupOrientationField shipId ->
       { model | player <- Player.updateShip shipId Ship.toggleOrientation model.player }
+    SetupOrientationToggle ->
+      case model.selectedShipId of
+        Just id ->
+          { model | player <- Player.updateShip id Ship.toggleOrientation model.player }
+        Nothing ->
+          model
     SetupSelectShip shipId ->
       { model | selectedShipId <- shipId }
     SetupShowShip position ->

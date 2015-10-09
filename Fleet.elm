@@ -33,6 +33,7 @@ defaultFleet =
     [ Ship.init 2 Ship.Horizontal (0, 0)
     , Ship.init 3 Ship.Horizontal (0, 0)
     , Ship.init 4 Ship.Horizontal (0, 0)
+    , Ship.init 5 Ship.Horizontal (0, 0)
     ]
 
 addShip : Ship.Ship -> Fleet -> Fleet

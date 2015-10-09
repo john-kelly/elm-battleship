@@ -13,6 +13,8 @@ import Matrix.Extra
 import Ship
 import Fleet
 
+(=>) = (,)
+
 -- Grid
 type alias IsHit = Bool
 type alias Grid = Matrix.Matrix Cell
@@ -127,11 +129,9 @@ cellToHtml hoverClick y x cell =
   let
     pos = (x, y)
     style =
-      [ ("display", "inline-block")
-      , ("height", "40px")
+      [ ("height", "40px")
       , ("width", "40px")
       , ("border-radius", "5px")
-      , ("vertical-align", "top") -- Fix horizontal spaces
       , ("margin", "1px")
       ]
     adm =
@@ -171,7 +171,10 @@ toHtmlRows matrixHtml =
         Just ary -> Array.toList ary
         Nothing -> []
     transform rowNum list =
-      (Html.div [] <| maybeArrayToList <| Matrix.getRow rowNum matrixHtml) :: list
+      (Html.div
+        [ Html.Attributes.style
+          [ "display" => "flex" ]
+        ] <| maybeArrayToList <| Matrix.getRow rowNum matrixHtml) :: list
   in
     List.foldr transform [] rowNumbers
 
@@ -187,10 +190,7 @@ toHtml context grid =
   in
   Html.div
   ([ Html.Attributes.class "battlefield"
-    , Html.Attributes.style
-      [ ("display", "inline-block")
-      , ("margin-top", "30px")
-      ]
+    , Html.Attributes.style []
     ] ++ event)
   (grid
     |> Matrix.indexedMap (cellToHtml context)

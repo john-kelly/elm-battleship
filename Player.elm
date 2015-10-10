@@ -1,5 +1,5 @@
 module Player
-  (Player
+  ( Player
   , defaultPlayer
   , defaultComputer
   , random
@@ -12,7 +12,8 @@ module Player
   , nextNotAddedShipId
   , addShip
   , shoot
-  , field) where
+  , field
+  ) where
 
 -- The player manages the syn b/w the ships in a fleet and the grid.
 -- There is an implicit invariant b/w a ship a fleet and a grid which is that if
@@ -108,7 +109,7 @@ turnShip shipId pos player =
           grid
   in
     updateGrid nextGrid player
-      |> updateShip shipId (\_ -> nextShip) 
+      |> updateShip shipId (\_ -> nextShip)
 
 -- Reposition ship on the grid:
   -- 1. Erase the current one

@@ -1,4 +1,9 @@
-module Ship {-(Ship, Orientation, init, getShipCoordinates)-} where
+module Ship
+  {-( Ship
+  , init
+  , getShipCoordinates
+  , hasCoordinate
+  )-} where
 
 -- Core
 -- Evan
@@ -66,7 +71,12 @@ toggleOrientation ship =
 
 setAdded : Bool -> Ship -> Ship
 setAdded bool ship =
-  {ship | added <- bool}
+  { ship | added <- bool }
+
+hasCoordinate : Loc.Location -> Ship -> Bool
+hasCoordinate coord ship =
+  getShipCoordinates ship
+    |> List.member coord
 
 setAddedTrue : Ship -> Ship
 setAddedTrue ship =

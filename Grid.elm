@@ -11,7 +11,8 @@ module Grid
   , shoot
   , setCell
   , getHeight
-  , getWidth ) where
+  , getWidth
+  ) where
 
 -- Core
 import Array -- For matrix conversion
@@ -62,41 +63,25 @@ addShip ship grid =
   in
     List.foldr setToShip grid shipCoordinates
 
-showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
-showShip ship fleet grid =
+setShip : Cell -> Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+setShip newCell ship fleet grid =
   let
-    shipCoordinates = Ship.getShipCoordinates ship
-    transform x y cell =
-      if List.member (y,x) shipCoordinates then
-        (Ship False)
-      else
-        cell
+    transform col row oldCell =
+      if Ship.hasCoordinate (row, col) ship then newCell else oldCell
   in
     if canAddShip ship fleet grid then
-      Matrix.indexedMap transform grid
+      grid
+        |> Matrix.indexedMap transform
     else
       grid
 
+showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+showShip ship fleet grid =
+  setShip (Ship False) ship fleet grid
+
 hideShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
 hideShip ship fleet grid =
-  let
-    shipCoordinates = Ship.getShipCoordinates ship
-    addedShipsCoords = fleet
-      |> Fleet.toList
-      |> List.filter .added
-      |> List.map Ship.getShipCoordinates
-      |> List.concat
-    condition x y =
-      List.member (y,x) shipCoordinates
-    condition2 x y =
-      not <| List.member (y,x) addedShipsCoords
-    transform x y cell =
-      if (condition x y) && (condition2 x y) then
-        (Empty False)
-      else
-        cell
-  in
-    Matrix.indexedMap transform grid
+  setShip (Empty False) ship fleet grid
 
 canAddShip : Ship.Ship -> Fleet.Fleet -> Grid -> Bool
 canAddShip ship fleet grid =

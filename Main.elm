@@ -3,6 +3,7 @@ module Battleship (main) where
 -- Core
 import String
 import Keyboard
+import Time
 -- Evan
 import Html
 import Html.Attributes
@@ -11,10 +12,18 @@ import StartApp
 import Effects
 -- 3rd Party
 -- Battleship
-import Grid
 import Player
-import Fleet
 import Ship
+
+
+---- HELPERS ----
+
+-- TODO For some reason using this as a signal-seed doesn't work - the model stays `defaultModel`; probably because the signal somehow updates _before_ `computer = defaultCompter` occurs
+startTime =
+  Signal.map fst <| Time.timestamp <| Signal.constant ()
+
+freeze signal =
+  Signal.sampleOn (Signal.constant 0) signal
 
 ---- MAIN ----
 main = .html <|
@@ -23,18 +32,24 @@ main = .html <|
     , view = view
     , update = (\ a m -> (update a m, Effects.none))
     , inputs =
-      [ Signal.map toggleOrientation isDpressed
+      [ Signal.map toggleOrientation
+          <| Keyboard.isDown 68 {- D -}
+      , Signal.map randomizeOpponent <| Time.every 1000
       ]
     }
 
----- INPUTS ----
+---- INPUT PROCESSORS ----
 
-isDpressed = Keyboard.isDown 68
+toggleOrientation : Bool -> Action
 toggleOrientation bool =
   if bool then
     SetupOrientationToggle
   else
     NoOp
+
+randomizeOpponent : Float -> Action
+randomizeOpponent float =
+  SetupRandomOpponent <| floor float
 
 ---- MODEL ----
 defaultModel : Model
@@ -90,18 +105,16 @@ view address model =
       wrapper
         [ Html.div []
           [ Html.div [] [ Html.text "Player1" ]
-          , Player.toHtml Nothing model.player
+          , Player.field Nothing model.player
           , Html.div [] [ Html.text "Player2" ]
-          , Player.toHtml aimShoot model.computer
+          , Player.field aimShoot model.computer
           ]
         ]
     GameOver ->
       wrapper
-      --[ Html.div []
-        [ Player.toHtml Nothing model.player
-        , Player.toHtml Nothing model.computer
+        [ Player.field Nothing model.player
+        , Player.field Nothing model.computer
         ]
-      --]
 
 
 setupControlsView : Signal.Address Action -> Player.Player -> Maybe Int -> Html.Html
@@ -111,16 +124,15 @@ setupControlsView address player selectedShipId =
       { hover = Signal.forwardTo address SetupShowShip
       , click = Signal.forwardTo address SetupAddShip
       }
-  in
-  if Player.allShipsAdded player then
-    Html.button [ Html.Events.onClick address SetupPlay ] [ Html.text "Start the game!" ]
-  else
-    let
     shipSelector = Html.div [Html.Attributes.style ["display" := "flex", "overflow" := "hidden", "border-radius" := "10px"]] <|
       List.map (shipFieldView address selectedShipId) (Player.getShips player)
-    help = Html.div [Html.Attributes.style ["margin" := "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
-    in
-    wrapper (shipSelector :: help :: [Grid.toHtml hoverClick player.primaryGrid])
+    hint = Html.div [Html.Attributes.style ["margin" := "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
+  in
+    wrapper <|
+      [ shipSelector
+      , hint
+      , Player.field hoverClick player
+      ]
 
 -- Depending on the Action render the proper html input.
 -- TODO this might belong in the Ship module
@@ -184,7 +196,8 @@ shipListView address ship isSelected =
 
 ---- UPDATE ----
 type Action
-  = SetupOrientationToggle
+  = SetupRandomOpponent Int
+  | SetupOrientationToggle
   | SetupSelectShip (Maybe Int)
   | SetupShowShip (Maybe (Int, Int))
   | SetupAddShip ()
@@ -196,6 +209,12 @@ type Action
 update : Action -> Model -> Model
 update action model =
   case action of
+    SetupRandomOpponent seed ->
+      -- TODO For some reason freezing the time signal never updates the computer player, but if not frozen this function has to run each time the signal updates, which is inefficient
+      if Player.allShipsAdded model.computer then
+        model
+      else
+        { model | computer <- Player.random seed }
     SetupOrientationToggle ->
       case model.selectedShipId of
         Just id ->
@@ -217,9 +236,12 @@ update action model =
           let
             newPlayer = Player.addShip id model.player
             nextShipId = Player.nextNotAddedShipId newPlayer
+            ready = nextShipId == Nothing -- Being a little smart here: if there are no ships left to be added, then we're ready to play!
+            nextModel =
+              { model | player <- newPlayer
+                      , selectedShipId <- nextShipId }
           in
-            { model | player <- newPlayer
-                    , selectedShipId <- nextShipId }
+            if not ready then nextModel else { nextModel | state <- Play }
         Nothing ->
           model
     SetupPlay ->

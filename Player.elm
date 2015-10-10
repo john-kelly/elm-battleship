@@ -1,4 +1,18 @@
-module Player (Player, defaultPlayer, defaultComputer, random, allShipsAdded, getShips, updateShip, turnShip, moveShip, updateGrid, nextNotAddedShipId, addShip, field) where
+module Player
+  (Player
+  , defaultPlayer
+  , defaultComputer
+  , random
+  , allShipsAdded
+  , getShips
+  , updateShip
+  , turnShip
+  , moveShip
+  , updateGrid
+  , nextNotAddedShipId
+  , addShip
+  , shoot
+  , field) where
 
 -- The player manages the syn b/w the ships in a fleet and the grid.
 -- There is an implicit invariant b/w a ship a fleet and a grid which is that if
@@ -148,6 +162,16 @@ nextNotAddedShipId player =
     case ship of
       Just s -> Just s.id
       Nothing -> Nothing
+
+shoot : (Int, Int) -> Player -> Player
+shoot pos enemy =
+  let
+    shotCell = Grid.shoot pos enemy.primaryGrid
+    trackingGrid = Grid.setCell pos shotCell enemy.trackingGrid
+    primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
+  in
+    { enemy | trackingGrid <- trackingGrid
+            , primaryGrid <- primaryGrid }
 
 field : Maybe Grid.Context -> Player -> Html.Html
 field address player =

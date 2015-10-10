@@ -13,9 +13,7 @@ import Random
 import Ship
 
 type alias Fleet =
-  { shipsSeen : Int -- Is that really needed?
-  , ships : Dict.Dict Int Ship.Ship
-  }
+  Dict.Dict Int Ship.Ship
 
 init : List Ship.Ship -> Fleet
 init ships =
@@ -23,10 +21,7 @@ init ships =
     |> List.foldr addShip emptyFleet
 
 emptyFleet : Fleet
-emptyFleet =
-  { shipsSeen = 0
-  , ships = Dict.empty
-  }
+emptyFleet = Dict.empty
 
 shipSizes = [2..5]
 
@@ -60,31 +55,23 @@ random seed =
 
 addShip : Ship.Ship -> Fleet -> Fleet
 addShip ship fleet =
-  { fleet |
-      ships <- fleet.ships
-        |> Dict.insert fleet.shipsSeen {ship | id <- fleet.shipsSeen},
-      shipsSeen <- fleet.shipsSeen + 1
-  }
+  let
+    length = List.length <| toList fleet
+  in
+    Dict.insert length {ship | id <- length} fleet
 
 getShip : Int -> Fleet -> Maybe Ship.Ship
 getShip shipId fleet =
-  Dict.get shipId fleet.ships
+  Dict.get shipId fleet
 
 map : (Ship.Ship -> Ship.Ship) -> Fleet -> Fleet
 map fn fleet =
-  { fleet |
-      ships <- fleet.ships
-        |> Dict.map (\compareable ship -> fn ship)
-  }
+  Dict.map (\compareable ship -> fn ship) fleet
 
 toList : Fleet -> List Ship.Ship
 toList fleet =
-  fleet.ships
-    |> Dict.values
+  Dict.values fleet
 
 updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Fleet -> Fleet
 updateShip shipId fn fleet =
-  { fleet |
-      ships <- fleet.ships
-        |> Dict.update shipId (Maybe.map fn)
-  }
+  Dict.update shipId (Maybe.map fn) fleet

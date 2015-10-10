@@ -1,4 +1,19 @@
-module Player where
+module Player
+  ( Player
+  , defaultPlayer
+  , defaultComputer
+  , random
+  , allShipsAdded
+  , getShips
+  , updateShip
+  , turnShip
+  , moveShip
+  , updateGrid
+  , nextNotAddedShipId
+  , addShip
+  , shoot
+  , field
+  ) where
 
 -- The player manages the syn b/w the ships in a fleet and the grid.
 -- There is an implicit invariant b/w a ship a fleet and a grid which is that if
@@ -24,30 +39,40 @@ type alias Player =
 defaultPlayer : Player
 defaultPlayer =
     { fleet = Fleet.defaultFleet
-    , primaryGrid = Grid.defaultPrimaryGrid
-    , trackingGrid = Grid.defaultTrackingGrid
+    , primaryGrid = Grid.emptyPrimaryGrid
+    , trackingGrid = Grid.emptyTrackingGrid
     }
 -- TODO Setup a random board for the computer.
 -- This will be different than the defaultPlayer function.
 defaultComputer : Player
 defaultComputer =
     { fleet = Fleet.defaultFleet
-    , primaryGrid = Grid.defaultPrimaryGrid
-    , trackingGrid = Grid.defaultTrackingGrid
+    , primaryGrid = Grid.emptyPrimaryGrid
+    , trackingGrid = Grid.emptyTrackingGrid
     }
+
+random : Int -> Player
+random seed =
+  let
+    player = Player (Fleet.random seed) Grid.emptyPrimaryGrid Grid.emptyTrackingGrid
+    shipIDs = List.indexedMap (\i _ -> i) Fleet.shipSizes
+    newPlayer = List.foldr addShip player shipIDs
+  in
+    -- Is it okay to just increment a seed to get a new one?
+    if allShipsAdded newPlayer then newPlayer else random <| seed + 1
 
 addShip : Int -> Player -> Player
 addShip shipId player =
   case Fleet.getShip shipId player.fleet of
     Just ship ->
-      if canAddShip ship player then
+      if Grid.canAddShip ship player.fleet player.primaryGrid then
         { player |
             fleet <- Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
             primaryGrid <- Grid.addShip ship player.primaryGrid
         }
       else
         player
-    _ -> player
+    Nothing -> player
 
 allShipsAdded : Player -> Bool
 allShipsAdded player =
@@ -58,47 +83,100 @@ allShipsAdded player =
 
 updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
 updateShip shipId fn player =
-  { player | fleet <- Fleet.updateShip shipId fn player.fleet }
+  let
+    newShip = Fleet.updateShip shipId fn player.fleet
+  in
+    { player | fleet <- newShip }
+
+turnShip : Int -> Maybe (Int, Int) -> Player -> Player
+turnShip shipId pos player =
+  let
+    -- Find current ship by id
+    ship =
+      case Fleet.getShip shipId player.fleet of
+        Just ship ->
+          ship
+        Nothing -> -- Never gonna happen
+          Ship.init 1 Ship.Horizontal (0,0)
+    -- Erase current ship from the grid
+    grid = Grid.hideShip ship player.fleet player.primaryGrid
+    nextShip = Ship.toggleOrientation ship
+    nextGrid =
+      case pos of
+        Just _ ->
+          Grid.showShip nextShip player.fleet grid
+        Nothing ->
+          grid
+  in
+    updateGrid nextGrid player
+      |> updateShip shipId (\_ -> nextShip)
+
+-- Reposition ship on the grid:
+  -- 1. Erase the current one
+  -- 2. Draw the new one (if given position)
+moveShip : Int -> Maybe (Int, Int) -> Player -> Player
+moveShip shipId position player =
+  let
+    -- Find current ship by id
+    ship = -- TODO: Get rid of this mess
+      case Fleet.getShip shipId player.fleet of
+        Just ship ->
+          ship
+        Nothing -> -- Never gonna happen
+          Ship.init 1 Ship.Horizontal (0,0)
+    -- Erase the current ship
+    grid = Grid.hideShip ship player.fleet player.primaryGrid
+  in
+    case position of
+      Just pos -> -- New position
+        let
+          nextShip =
+            case Fleet.getShip shipId player.fleet of
+              Just ship ->
+                Ship.setLocation pos ship
+              Nothing -> -- Never gonna happen
+                Ship.init 1 Ship.Horizontal (0,0)
+          -- Put the next ship on the grid
+          newGrid = Grid.showShip nextShip player.fleet grid
+          fn s = Ship.setLocation pos s
+        in
+        updateGrid newGrid <| updateShip shipId fn player
+      Nothing -> -- Old position (hide ship)
+        updateGrid grid player
+
+updateGrid : Grid.Grid -> Player -> Player
+updateGrid grid player =
+  { player | primaryGrid <- grid }
 
 getShips : Player -> List Ship.Ship
 getShips player =
   player.fleet
     |> Fleet.toList
 
-canAddShip : Ship.Ship -> Player -> Bool
-canAddShip ship player =
-  -- order here is important for optimization. `shipInBounds` is cheap
-  if | not (shipInBounds ship player.primaryGrid) -> False
-     | shipOverlaps ship player.fleet -> False
-     | otherwise -> True
-
--- private helper for canAddShip
-shipOverlaps : Ship.Ship -> Fleet.Fleet -> Bool
-shipOverlaps ship fleet =
+nextNotAddedShipId : Player -> Maybe Int
+nextNotAddedShipId player =
   let
-  shipCoordinates = Ship.getShipCoordinates ship
+    ship = (getShips player)
+      |> List.filter (not << .added)
+      |> List.head
   in
-  fleet
-    |> Fleet.toList
-    |> List.filter .added
-    |> List.map Ship.getShipCoordinates
-    |> List.concat
-    |> List.foldr (\coord acc -> (List.member coord shipCoordinates) || acc) False
+    case ship of
+      Just s -> Just s.id
+      Nothing -> Nothing
 
--- private helper for canAddShip
-shipInBounds : Ship.Ship -> Grid.Grid -> Bool
-shipInBounds ship grid =
+shoot : (Int, Int) -> Player -> Player
+shoot pos enemy =
   let
-  gridH = Grid.getHeight grid
-  gridW = Grid.getWidth grid
-  isInBounds (shipRow, shipColumn) =
-    shipRow >= 0 && shipRow < gridH && shipColumn >= 0 && shipColumn < gridW
+    shotCell = Grid.shoot pos enemy.primaryGrid
+    trackingGrid = Grid.setCell pos shotCell enemy.trackingGrid
+    primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
   in
-  ship
-    |> Ship.getShipCoordinates
-    |> List.map isInBounds
-    |> List.all identity
+    { enemy | trackingGrid <- trackingGrid
+            , primaryGrid <- primaryGrid }
 
-toHtml : Player -> Html.Html
-toHtml player =
-  Html.div [] [Grid.toHtml player.primaryGrid, Grid.toHtml player.trackingGrid]
+field : Maybe Grid.Context -> Player -> Html.Html
+field address player =
+  Html.div []
+  [ Grid.toHtml address player.primaryGrid
+  --, Grid.toHtml player.trackingGrid
+  ]

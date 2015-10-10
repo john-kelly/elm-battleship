@@ -1,4 +1,9 @@
-module Ship where
+module Ship
+  {-( Ship
+  , init
+  , getShipCoordinates
+  , hasCoordinate
+  )-} where
 
 -- Core
 -- Evan
@@ -13,6 +18,7 @@ type alias Ship =
   , length : Int
   , orientation : Orientation
   , location : Loc.Location
+  , isSunk : Bool
   , added : Bool
   }
 
@@ -22,8 +28,13 @@ init length orientation location =
   , length = length
   , orientation = orientation
   , location = location
+  , isSunk = False
   , added = False
   }
+
+setLocation : Loc.Location -> Ship -> Ship
+setLocation newLocation ship =
+  { ship | location <- newLocation }
 
 setRow : Int -> Ship -> Ship
 setRow row ship =
@@ -60,7 +71,12 @@ toggleOrientation ship =
 
 setAdded : Bool -> Ship -> Ship
 setAdded bool ship =
-  {ship | added <- bool}
+  { ship | added <- bool }
+
+hasCoordinate : Loc.Location -> Ship -> Bool
+hasCoordinate coord ship =
+  getShipCoordinates ship
+    |> List.member coord
 
 setAddedTrue : Ship -> Ship
 setAddedTrue ship =

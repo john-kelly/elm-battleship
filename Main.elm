@@ -96,7 +96,7 @@ view address model =
   let
     aimShoot =
       if model.state == Play then
-        Just 
+        Just
          { hover = Signal.forwardTo address PlayAim
          , click = Signal.forwardTo address PlayShoot
          }

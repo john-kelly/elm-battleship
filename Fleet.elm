@@ -1,4 +1,12 @@
-module Fleet (Fleet, shipSizes, defaultFleet, random, getShip, updateShip, toList) where
+module Fleet
+  ( Fleet
+  , shipSizes
+  , defaultFleet
+  , random
+  , getShip
+  , updateShip
+  , toList
+  ) where
 
 -- NOTE
 -- serve as a wrapper around a Dict of ships so that we can give each added

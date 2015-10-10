@@ -1,4 +1,12 @@
-module Location where
+module Location
+  ( Location
+  , init
+  , row
+  , column
+  , addToRow
+  , addToColumn
+  )
+  where
 
 -- NOTE intended to just be a light weight wrapper around a tuple. Using the
 -- tuple literal syntax should not be considered breaking the abstraction layer

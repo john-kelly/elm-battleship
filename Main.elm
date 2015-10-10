@@ -55,7 +55,7 @@ randomizeOpponent float =
 defaultModel : Model
 defaultModel =
   { state = Setup
-  , selectedShipId = Just 0 -- Potentially not reliable if we want to change the underlying model, a better way would be to implicitly get the first ID
+  , selectedShipId = Just 0 -- Potentially not reliable if we want to change the underlying model, a better way would be to explicitly get the first ID
   , hoverPos = Nothing
   , player = Player.defaultPlayer
   , computer = Player.defaultComputer
@@ -69,12 +69,14 @@ type alias Model =
   , computer : Player.Player
   }
 -- State
+type Turn = Me | Enemy
+
 type State
   = Setup
-  | Play
+  | Play Turn
   | GameOver
 
-(:=) = (,)
+(=>) = (,)
 
 ---- VIEW ----
 
@@ -84,10 +86,10 @@ wrapper : List Html.Html -> Html.Html
 wrapper htmlList =
   Html.main'
     [ Html.Attributes.style
-      [ "display" := "flex"
-      , "flex-direction" := "column"
-      , "align-items" := "center"
-      , "margin" := "50px 0px"
+      [ "display" => "flex"
+      , "flex-direction" => "column"
+      , "align-items" => "center"
+      , "margin" => "50px 0px"
       ]
     ] htmlList
 
@@ -95,7 +97,7 @@ view : Signal.Address Action -> Model -> Html.Html
 view address model =
   let
     aimShoot =
-      if model.state == Play then
+      if model.state == Play Me then
         Just 
          { hover = Signal.forwardTo address PlayAim
          , click = Signal.forwardTo address PlayShoot
@@ -104,7 +106,7 @@ view address model =
         Nothing
     selectedShipId = model.selectedShipId
     spacer = Html.div
-      [Html.Attributes.style ["height" := "40px"]] []
+      [Html.Attributes.style ["height" => "40px"]] []
     content =
       wrapper <| (setupControlsView address model.player selectedShipId) ++
         [ spacer
@@ -141,9 +143,9 @@ setupControlsView address player selectedShipId =
       { hover = Signal.forwardTo address SetupShowShip
       , click = Signal.forwardTo address SetupAddShip
       }
-    shipSelector = Html.div [Html.Attributes.style ["display" := "flex", "overflow" := "hidden", "border-radius" := "10px"]] <|
+    shipSelector = Html.div [Html.Attributes.style ["display" => "flex", "overflow" => "hidden", "border-radius" => "10px"]] <|
       List.map (shipFieldView address selectedShipId) (Player.getShips player)
-    hint = Html.div [Html.Attributes.style ["margin" := "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
+    hint = Html.div [Html.Attributes.style ["margin" => "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
   in
     [ shipSelector
     , hint
@@ -167,7 +169,7 @@ shipListView address ship isSelected =
   let
     selectedStyle =
       if isSelected then
-        [ "background-color" := "gray" ]
+        [ "background-color" => "gray" ]
       else
         []
     direction =
@@ -176,16 +178,16 @@ shipListView address ship isSelected =
         Ship.Vertical -> "column"
     hiddenStyle =
       if ship.added then
-        ["cursor" := "auto"]
+        ["cursor" => "auto"]
       else []
     box = Html.div
       [ Html.Attributes.style <|
-        [ "width" := "20px"
-        , "height" := "20px"
-        , "border" := "1px solid gray"
-        , "border-radius" := "3px"
-        , "margin" := "1px"
-        , "vertical-align" := "middle"
+        [ "width" => "20px"
+        , "height" => "20px"
+        , "border" => "1px solid gray"
+        , "border-radius" => "3px"
+        , "margin" => "1px"
+        , "vertical-align" => "middle"
         ] ++ selectedStyle
       ] []
     clickEvent =
@@ -197,15 +199,15 @@ shipListView address ship isSelected =
   in
     Html.div
     ([ Html.Attributes.style <|
-      [ "display" := "flex"
-      , "flex-direction" := direction
-      , "align-items" := "center"
-      , "justify-content" := "center"
-      , "width" := "150px"
-      , "height" := "150px"
-      , "background-color" := "lightgray"
-      , "margin" := "0px 1px"
-      , "cursor" := "pointer"
+      [ "display" => "flex"
+      , "flex-direction" => direction
+      , "align-items" => "center"
+      , "justify-content" => "center"
+      , "width" => "150px"
+      , "height" => "150px"
+      , "background-color" => "lightgray"
+      , "margin" => "0px 1px"
+      , "cursor" => "pointer"
       ] ++ hiddenStyle
     ] ++ if ship.added then [] else [clickEvent])
     <| if ship.added then [] else List.repeat ship.length box
@@ -257,14 +259,15 @@ update action model =
               { model | player <- newPlayer
                       , selectedShipId <- nextShipId }
           in
-            if not ready then nextModel else { nextModel | state <- Play }
+            if not ready then nextModel else { nextModel | state <- Play Me }
         Nothing ->
           model
     SetupPlay ->
-      { model | state <- Play }
+      { model | state <- Play Me }
     PlayAim position ->
       model
     PlayShoot pos ->
+
       { model | computer <- Player.shoot pos model.computer }
     NoOp -> model
 

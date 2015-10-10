@@ -26,7 +26,7 @@ import Matrix.Extra
 import Ship
 import Fleet
 
-(=>) = (,)
+(:=) = (,)
 
 -- Grid
 type alias IsHit = Bool
@@ -34,7 +34,7 @@ type alias Grid = Matrix.Matrix Cell
 type Cell
     = Ship IsHit
     | Empty IsHit
-    -- TODO: Sunk state
+    | Sunk
     | Unknown
 
 emptyPrimaryGrid : Grid
@@ -146,10 +146,27 @@ shoot (j, i) grid =
           Ship True
         Empty _ ->
           Empty True
+        Sunk ->
+          Sunk
         Unknown ->
           Unknown
     Nothing -> -- Error
       Empty False
+
+isShipSunk : Ship.Ship -> Grid -> Bool
+isShipSunk ship grid =
+  let
+    isHit (row, column) =
+      case Matrix.get column row grid of
+        Just cell ->
+          if cell == (Ship True) then True else False
+        Nothing ->
+          False
+  in
+    ship
+      |> Ship.getShipCoordinates
+      |> List.map isHit
+      |> List.foldr (&&) True
 
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))
@@ -166,12 +183,20 @@ cellToHtml hoverClick y x cell =
       , ("border-radius", "5px")
       , ("margin", "1px")
       ]
+    events hc =
+      [ Html.Events.onMouseEnter hc.hover (Just pos)
+      , Html.Events.onMouseDown hc.click pos
+      ]
     adm =
       case hoverClick of
         Just hc ->
-          [ Html.Events.onMouseEnter hc.hover (Just pos)
-          , Html.Events.onMouseDown hc.click pos
-          ]
+          case cell of
+            Ship False -> events hc
+            Empty False -> events hc
+            Unknown -> events hc
+            Ship True -> []
+            Empty True -> []
+            Sunk -> []
         Nothing ->
           []
     box color = Html.div
@@ -205,7 +230,7 @@ toHtmlRows matrixHtml =
     transform rowNum list =
       (Html.div
         [ Html.Attributes.style
-          [ "display" => "flex" ]
+          [ "display" := "flex" ]
         ] <| maybeArrayToList <| Matrix.getRow rowNum matrixHtml) :: list
   in
     List.foldr transform [] rowNumbers

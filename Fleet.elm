@@ -1,4 +1,4 @@
-module Fleet (Fleet, defaultFleet, getShip, updateShip, toList) where
+module Fleet (Fleet, shipSizes, defaultFleet, random, getShip, updateShip, toList) where
 
 -- NOTE
 -- serve as a wrapper around a Dict of ships so that we can give each added
@@ -6,13 +6,14 @@ module Fleet (Fleet, defaultFleet, getShip, updateShip, toList) where
 
 -- Core
 import Dict
+import Random
 -- Evan
 -- 3rd Party
 -- Battleship
 import Ship
 
 type alias Fleet =
-  { shipsSeen : Int
+  { shipsSeen : Int -- Is that really needed?
   , ships : Dict.Dict Int Ship.Ship
   }
 
@@ -27,14 +28,35 @@ emptyFleet =
   , ships = Dict.empty
   }
 
+shipSizes = [2..5]
+
+shipsWithSizes = List.map Ship.init shipSizes
+
 defaultFleet : Fleet
 defaultFleet =
-  init
-    [ Ship.init 2 Ship.Horizontal (0, 0)
-    , Ship.init 3 Ship.Horizontal (0, 0)
-    , Ship.init 4 Ship.Horizontal (0, 0)
-    , Ship.init 5 Ship.Horizontal (0, 0)
-    ]
+  init <|
+    List.map (\fn -> fn Ship.Horizontal (0, 0)) shipsWithSizes
+
+random : Int -> Fleet
+random seed =
+  let
+    locationsGen =
+      Random.list (List.length shipSizes)
+        <| Random.pair (Random.int 0 10) (Random.int 0 10)
+    floatsGen =
+      Random.list (List.length shipSizes)
+        <| Random.float 0 1
+    (locations, seed1) =
+      Random.generate locationsGen <| Random.initialSeed seed
+    (floats, seed2) =
+    -- ? Not sure whether we have to use a different seed here:
+      Random.generate floatsGen <| Random.initialSeed seed
+    floatToOrientation float =
+      if float < 0.5 then Ship.Horizontal else Ship.Vertical
+    orientations = List.map floatToOrientation floats
+  in
+    init <|
+      List.map3 (\fn orient loc -> fn orient loc) shipsWithSizes orientations locations
 
 addShip : Ship.Ship -> Fleet -> Fleet
 addShip ship fleet =

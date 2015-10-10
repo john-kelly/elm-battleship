@@ -1,4 +1,4 @@
-module Player (Player, defaultPlayer, defaultComputer, toHtml, allShipsAdded, getShips, updateShip, turnShip, moveShip, updateGrid, nextNotAddedShipId, addShip) where
+module Player (Player, defaultPlayer, defaultComputer, random, allShipsAdded, getShips, updateShip, turnShip, moveShip, updateGrid, nextNotAddedShipId, addShip, field) where
 
 -- The player manages the syn b/w the ships in a fleet and the grid.
 -- There is an implicit invariant b/w a ship a fleet and a grid which is that if
@@ -24,17 +24,27 @@ type alias Player =
 defaultPlayer : Player
 defaultPlayer =
     { fleet = Fleet.defaultFleet
-    , primaryGrid = Grid.defaultPrimaryGrid
-    , trackingGrid = Grid.defaultTrackingGrid
+    , primaryGrid = Grid.emptyPrimaryGrid
+    , trackingGrid = Grid.emptyTrackingGrid
     }
 -- TODO Setup a random board for the computer.
 -- This will be different than the defaultPlayer function.
 defaultComputer : Player
 defaultComputer =
     { fleet = Fleet.defaultFleet
-    , primaryGrid = Grid.defaultPrimaryGrid
-    , trackingGrid = Grid.defaultTrackingGrid
+    , primaryGrid = Grid.emptyPrimaryGrid
+    , trackingGrid = Grid.emptyTrackingGrid
     }
+
+random : Int -> Player
+random seed =
+  let
+    player = Player (Fleet.random seed) Grid.emptyPrimaryGrid Grid.emptyTrackingGrid
+    shipIDs = List.indexedMap (\i _ -> i) Fleet.shipSizes
+    newPlayer = List.foldr addShip player shipIDs
+  in
+    -- Is it okay to just increment a seed to get a new one?
+    if allShipsAdded newPlayer then newPlayer else random <| seed + 1
 
 addShip : Int -> Player -> Player
 addShip shipId player =
@@ -48,18 +58,6 @@ addShip shipId player =
       else
         player
     Nothing -> player
-
-{-
-showShip : Ship.Ship -> Fleet.Fleet -> Grid.Grid -> Grid.Grid
-showShip ship fleet grid =
-  if canAddShip ship fleet grid then
-    Grid.showShip ship grid
-  else
-    grid
--}
---hideShip : Ship.Ship -> Fleet.Fleet -> Grid.Grid -> Grid.Grid
---hideShip ship fleet grid =
---  Grid.hideShip ship grid
 
 allShipsAdded : Player -> Bool
 allShipsAdded player =
@@ -98,7 +96,7 @@ turnShip shipId pos player =
     updateGrid nextGrid player
       |> updateShip shipId (\_ -> nextShip) 
 
--- Repositions ship on the grid:
+-- Reposition ship on the grid:
   -- 1. Erase the current one
   -- 2. Draw the new one (if given position)
 moveShip : Int -> Maybe (Int, Int) -> Player -> Player
@@ -151,8 +149,8 @@ nextNotAddedShipId player =
       Just s -> Just s.id
       Nothing -> Nothing
 
-toHtml : Maybe Grid.Context -> Player -> Html.Html
-toHtml address player =
+field : Maybe Grid.Context -> Player -> Html.Html
+field address player =
   Html.div []
   [ Grid.toHtml address player.primaryGrid
   --, Grid.toHtml player.trackingGrid

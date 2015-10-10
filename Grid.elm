@@ -1,4 +1,4 @@
-module Grid ( Grid, Context, toHtml, defaultPrimaryGrid, defaultTrackingGrid, canAddShip, addShip, showShip, hideShip, getHeight, getWidth ) where
+module Grid ( Grid, Context, toHtml, emptyPrimaryGrid, emptyTrackingGrid, canAddShip, addShip, showShip, hideShip, getHeight, getWidth ) where
 
 -- Core
 import Array -- For matrix conversion
@@ -24,12 +24,12 @@ type Cell
     -- TODO: Sunk state
     | Unknown
 
-defaultPrimaryGrid : Grid
-defaultPrimaryGrid =
+emptyPrimaryGrid : Grid
+emptyPrimaryGrid =
   Matrix.repeat 10 10 (Empty False)
 
-defaultTrackingGrid : Grid
-defaultTrackingGrid =
+emptyTrackingGrid : Grid
+emptyTrackingGrid =
   Matrix.repeat 10 10 Unknown
 
 getHeight : Grid -> Int

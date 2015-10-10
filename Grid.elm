@@ -11,7 +11,8 @@ module Grid
   , shoot
   , setCell
   , getHeight
-  , getWidth ) where
+  , getWidth
+  ) where
 
 -- Core
 import Array -- For matrix conversion
@@ -26,7 +27,7 @@ import Matrix.Extra
 import Ship
 import Fleet
 
-(=>) = (,)
+(:=) = (,)
 
 -- Grid
 type alias IsHit = Bool
@@ -34,7 +35,7 @@ type alias Grid = Matrix.Matrix Cell
 type Cell
     = Ship IsHit
     | Empty IsHit
-    -- TODO: Sunk state
+    | Sunk
     | Unknown
 
 emptyPrimaryGrid : Grid
@@ -62,41 +63,25 @@ addShip ship grid =
   in
     List.foldr setToShip grid shipCoordinates
 
-showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
-showShip ship fleet grid =
+setShip : Cell -> Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+setShip newCell ship fleet grid =
   let
-    shipCoordinates = Ship.getShipCoordinates ship
-    transform x y cell =
-      if List.member (y,x) shipCoordinates then
-        (Ship False)
-      else
-        cell
+    transform col row oldCell =
+      if Ship.hasCoordinate (row, col) ship then newCell else oldCell
   in
     if canAddShip ship fleet grid then
-      Matrix.indexedMap transform grid
+      grid
+        |> Matrix.indexedMap transform
     else
       grid
 
+showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
+showShip ship fleet grid =
+  setShip (Ship False) ship fleet grid
+
 hideShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
 hideShip ship fleet grid =
-  let
-    shipCoordinates = Ship.getShipCoordinates ship
-    addedShipsCoords = fleet
-      |> Fleet.toList
-      |> List.filter .added
-      |> List.map Ship.getShipCoordinates
-      |> List.concat
-    condition x y =
-      List.member (y,x) shipCoordinates
-    condition2 x y =
-      not <| List.member (y,x) addedShipsCoords
-    transform x y cell =
-      if (condition x y) && (condition2 x y) then
-        (Empty False)
-      else
-        cell
-  in
-    Matrix.indexedMap transform grid
+  setShip (Empty False) ship fleet grid
 
 canAddShip : Ship.Ship -> Fleet.Fleet -> Grid -> Bool
 canAddShip ship fleet grid =
@@ -146,10 +131,27 @@ shoot (j, i) grid =
           Ship True
         Empty _ ->
           Empty True
+        Sunk ->
+          Sunk
         Unknown ->
           Unknown
     Nothing -> -- Error
       Empty False
+
+isShipSunk : Ship.Ship -> Grid -> Bool
+isShipSunk ship grid =
+  let
+    isHit (row, column) =
+      case Matrix.get column row grid of
+        Just cell ->
+          if cell == (Ship True) then True else False
+        Nothing ->
+          False
+  in
+    ship
+      |> Ship.getShipCoordinates
+      |> List.map isHit
+      |> List.foldr (&&) True
 
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))
@@ -166,12 +168,20 @@ cellToHtml hoverClick y x cell =
       , ("border-radius", "5px")
       , ("margin", "1px")
       ]
+    events hc =
+      [ Html.Events.onMouseEnter hc.hover (Just pos)
+      , Html.Events.onMouseDown hc.click pos
+      ]
     adm =
       case hoverClick of
         Just hc ->
-          [ Html.Events.onMouseEnter hc.hover (Just pos)
-          , Html.Events.onMouseDown hc.click pos
-          ]
+          case cell of
+            Ship False -> events hc
+            Empty False -> events hc
+            Unknown -> events hc
+            Ship True -> []
+            Empty True -> []
+            Sunk -> []
         Nothing ->
           []
     box color = Html.div
@@ -205,7 +215,7 @@ toHtmlRows matrixHtml =
     transform rowNum list =
       (Html.div
         [ Html.Attributes.style
-          [ "display" => "flex" ]
+          [ "display" := "flex" ]
         ] <| maybeArrayToList <| Matrix.getRow rowNum matrixHtml) :: list
   in
     List.foldr transform [] rowNumbers

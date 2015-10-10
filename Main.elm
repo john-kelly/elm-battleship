@@ -55,7 +55,7 @@ randomizeOpponent float =
 defaultModel : Model
 defaultModel =
   { state = Setup
-  , selectedShipId = Just 0
+  , selectedShipId = Just 0 -- Potentially not reliable if we want to change the underlying model, a better way would be to implicitly get the first ID
   , hoverPos = Nothing
   , player = Player.defaultPlayer
   , computer = Player.defaultComputer

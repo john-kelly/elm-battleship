@@ -14,7 +14,7 @@ import Effects
 -- Battleship
 import Player
 import Ship
-
+import Grid
 
 ---- HELPERS ----
 
@@ -79,6 +79,8 @@ type State
 ---- VIEW ----
 
 -- Global wrapper
+
+wrapper : List Html.Html -> Html.Html
 wrapper htmlList =
   Html.main'
     [ Html.Attributes.style
@@ -92,32 +94,47 @@ wrapper htmlList =
 view : Signal.Address Action -> Model -> Html.Html
 view address model =
   let
-    aimShoot = Just
-      { hover = Signal.forwardTo address PlayAim
-      , click = Signal.forwardTo address PlayShoot
-      }
+    aimShoot =
+      if model.state == Play then
+        Just 
+         { hover = Signal.forwardTo address PlayAim
+         , click = Signal.forwardTo address PlayShoot
+         }
+      else
+        Nothing
     selectedShipId = model.selectedShipId
-  in
-  case model.state of
-    Setup ->
-      setupControlsView address model.player selectedShipId
-    Play ->
-      wrapper
-        [ Html.div []
-          [ Html.div [] [ Html.text "Player1" ]
-          , Player.field Nothing model.player
-          , Html.div [] [ Html.text "Player2" ]
-          , Player.field aimShoot model.computer
-          ]
-        ]
-    GameOver ->
-      wrapper
-        [ Player.field Nothing model.player
+    spacer = Html.div
+      [Html.Attributes.style ["height" := "40px"]] []
+    content =
+      wrapper <| (setupControlsView address model.player selectedShipId) ++
+        [ spacer
+        , Grid.toHtml aimShoot model.computer.trackingGrid
+        , spacer
         , Player.field Nothing model.computer
         ]
+  in
+    content
+  --case model.state of
+  --  Setup ->
+  --    content
+  --  Play ->
+  --    content
+  --    --wrapper
+  --    --  [ Html.div []
+  --    --    [ Html.div [] [ Html.text "Player1" ]
+  --    --    , Player.field Nothing model.player
+  --    --    , Html.div [] [ Html.text "Player2" ]
+  --    --    , Player.field aimShoot model.computer
+  --    --    ]
+  --    --  ]
+  --  GameOver ->
+  --    wrapper
+  --      [ Player.field Nothing model.player
+  --      , Player.field Nothing model.computer
+  --      ]
 
 
-setupControlsView : Signal.Address Action -> Player.Player -> Maybe Int -> Html.Html
+setupControlsView : Signal.Address Action -> Player.Player -> Maybe Int -> List Html.Html
 setupControlsView address player selectedShipId =
   let
     hoverClick = Just
@@ -128,11 +145,10 @@ setupControlsView address player selectedShipId =
       List.map (shipFieldView address selectedShipId) (Player.getShips player)
     hint = Html.div [Html.Attributes.style ["margin" := "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
   in
-    wrapper <|
-      [ shipSelector
-      , hint
-      , Player.field hoverClick player
-      ]
+    [ shipSelector
+    , hint
+    , Player.field hoverClick player
+    ]
 
 -- Depending on the Action render the proper html input.
 -- TODO this might belong in the Ship module
@@ -200,10 +216,10 @@ type Action
   | SetupOrientationToggle
   | SetupSelectShip (Maybe Int)
   | SetupShowShip (Maybe (Int, Int))
-  | SetupAddShip ()
+  | SetupAddShip (Int, Int)
   | SetupPlay
   | PlayAim (Maybe (Int, Int))
-  | PlayShoot ()
+  | PlayShoot (Int, Int)
   | NoOp
 
 update : Action -> Model -> Model
@@ -248,7 +264,8 @@ update action model =
       { model | state <- Play }
     PlayAim position ->
       model
-    PlayShoot _ -> model
+    PlayShoot pos ->
+      { model | computer <- Player.shoot pos model.computer }
     NoOp -> model
 
 toIntOrDefaultOrZero : String -> Int -> Int

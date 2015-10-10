@@ -1,4 +1,17 @@
-module Grid ( Grid, Context, toHtml, emptyPrimaryGrid, emptyTrackingGrid, canAddShip, addShip, showShip, hideShip, getHeight, getWidth ) where
+module Grid
+  ( Grid
+  , Context
+  , toHtml
+  , emptyPrimaryGrid
+  , emptyTrackingGrid
+  , canAddShip
+  , addShip
+  , showShip
+  , hideShip
+  , shoot
+  , setCell
+  , getHeight
+  , getWidth ) where
 
 -- Core
 import Array -- For matrix conversion
@@ -119,9 +132,28 @@ shipInBounds ship grid =
     |> List.map isInBounds
     |> List.all identity
 
+
+setCell : (Int, Int) -> Cell -> Grid -> Grid
+setCell (j, i) cell grid =
+  Matrix.set i j cell grid
+
+shoot : (Int, Int) -> Grid -> Cell
+shoot (j, i) grid =
+  case Matrix.get i j grid of
+    Just cell ->
+      case cell of
+        Ship _ ->
+          Ship True
+        Empty _ ->
+          Empty True
+        Unknown ->
+          Unknown
+    Nothing -> -- Error
+      Empty False
+
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))
-  , click : Signal.Address ()
+  , click : Signal.Address (Int, Int)
   }
 
 cellToHtml : Maybe Context -> Int -> Int -> Cell -> Html.Html
@@ -138,7 +170,7 @@ cellToHtml hoverClick y x cell =
       case hoverClick of
         Just hc ->
           [ Html.Events.onMouseEnter hc.hover (Just pos)
-          , Html.Events.onClick hc.click ()
+          , Html.Events.onMouseDown hc.click pos
           ]
         Nothing ->
           []
@@ -159,7 +191,7 @@ cellToHtml hoverClick y x cell =
       else -- " "
         box "#99C2E1" -- Light blue
     Unknown -> -- "?"
-      box "yellow"
+      box "#F3F38B"
 
 toHtmlRows : Matrix.Matrix Html.Html -> List Html.Html
 toHtmlRows matrixHtml =

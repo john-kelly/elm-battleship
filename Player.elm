@@ -37,6 +37,9 @@ type alias Player =
     , primaryGrid : Grid.Grid
     , trackingGrid : Grid.Grid
     }
+
+type alias ShipId = Int
+
 defaultPlayer : Player
 defaultPlayer =
     { fleet = Fleet.defaultFleet
@@ -62,7 +65,7 @@ random seed =
     -- Is it okay to just increment a seed to get a new one?
     if allShipsAdded newPlayer then newPlayer else random <| seed + 1
 
-addShip : Int -> Player -> Player
+addShip : ShipId -> Player -> Player
 addShip shipId player =
   case Fleet.getShip shipId player.fleet of
     Just ship ->
@@ -76,6 +79,13 @@ addShip shipId player =
       else
         player
     Nothing -> player
+
+canAddShip : Ship.Ship -> Player -> Bool
+canAddShip ship player =
+  -- order here is important for optimization. `shipInBounds` is cheap
+  if | not (Grid.coordsInBounds (Ship.getShipCoordinates ship) player.primaryGrid) -> False
+     | Fleet.shipOverlaps ship player.fleet -> False
+     | otherwise -> True
 
 allShipsAdded : Player -> Bool
 allShipsAdded player =
@@ -92,19 +102,12 @@ allShipsSunk player =
     |> List.map (\ship -> Grid.isShipSunk ship player.primaryGrid)
     |> List.all identity
 
-updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
+updateShip : ShipId -> (Ship.Ship -> Ship.Ship) -> Player -> Player
 updateShip shipId fn player =
   let
     newShip = Fleet.updateShip shipId fn player.fleet
   in
     { player | fleet <- newShip }
-
-canAddShip : Ship.Ship -> Player -> Bool
-canAddShip ship player =
-  -- order here is important for optimization. `shipInBounds` is cheap
-  if | not (Grid.shipInBounds ship player.primaryGrid) -> False
-     | Fleet.shipOverlaps ship player.fleet -> False
-     | otherwise -> True
 
 updateGrid : Grid.Grid -> Player -> Player
 updateGrid grid player =
@@ -115,11 +118,7 @@ getShips player =
   player.fleet
     |> Fleet.toList
 
-getShip : Int -> Player -> Maybe Ship.Ship
-getShip shipId player =
-  Fleet.getShip shipId player.fleet
-
-nextNotAddedShipId : Player -> Maybe Int
+nextNotAddedShipId : Player -> Maybe ShipId
 nextNotAddedShipId player =
   let
     ship =
@@ -160,7 +159,7 @@ shoot pos player enemy =
     (,) { player | trackingGrid <- updateIfSunk trackingGrid }
         { enemy | primaryGrid <- updateIfSunk primaryGrid }
 
-previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player -> Html.Html
+previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe ShipId -> Player -> Html.Html
 previewShip clickHover maybeHoverPos maybeShipId player =
   let
     noPreview =
@@ -187,7 +186,7 @@ previewShip clickHover maybeHoverPos maybeShipId player =
       case maybeHoverPos of
         Nothing -> noPreview
         Just hoverPos ->
-          case getShip shipId player of
+          case Fleet.getShip shipId player.fleet of
             Nothing -> noPreview
             Just ship ->
               let

@@ -23,7 +23,6 @@ import Matrix
 import Matrix.Extra
 -- Battleship
 import Ship
-import Fleet
 import Location as Loc
 
 (:=) = (,)

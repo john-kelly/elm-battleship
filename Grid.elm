@@ -12,6 +12,7 @@ module Grid
   , setCell
   , getHeight
   , getWidth
+  , getUnknownPositions
   ) where
 
 -- Core
@@ -122,19 +123,24 @@ setCell : (Int, Int) -> Cell -> Grid -> Grid
 setCell (j, i) cell grid =
   Matrix.set i j cell grid
 
+getUnknownPositions : Grid -> List (Int, Int)
+getUnknownPositions grid =
+  grid
+    |> Matrix.toIndexedArray
+    |> Array.filter (snd >> ((==) Unknown))
+    |> Array.map fst
+    |> Array.toList
+
+-- TODO Maybe return a (Maybe Cell)?
 shoot : (Int, Int) -> Grid -> Cell
 shoot (j, i) grid =
   case Matrix.get i j grid of
     Just cell ->
       case cell of
-        Ship _ ->
-          Ship True
-        Empty _ ->
-          Empty True
-        Sunk ->
-          Sunk
-        Unknown ->
-          Unknown
+        Ship _ -> Ship True
+        Empty _ -> Empty True
+        Sunk -> cell
+        Unknown -> cell
     Nothing -> -- Error
       Empty False
 
@@ -151,7 +157,7 @@ isShipSunk ship grid =
     ship
       |> Ship.getShipCoordinates
       |> List.map isHit
-      |> List.foldr (&&) True
+      |> List.all identity
 
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))

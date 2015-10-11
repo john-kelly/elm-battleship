@@ -164,15 +164,15 @@ nextNotAddedShipId player =
       Just s -> Just s.id
       Nothing -> Nothing
 
-shoot : (Int, Int) -> Player -> Player
-shoot pos enemy =
+shoot : (Int, Int) -> Player -> Player -> (Player, Player)
+shoot pos player enemy =
   let
     shotCell = Grid.shoot pos enemy.primaryGrid
-    trackingGrid = Grid.setCell pos shotCell enemy.trackingGrid
+    trackingGrid = Grid.setCell pos shotCell player.trackingGrid
     primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
   in
-    { enemy | trackingGrid <- trackingGrid
-            , primaryGrid <- primaryGrid }
+    (,) { player | trackingGrid <- trackingGrid }
+        { enemy | primaryGrid <- primaryGrid }
 
 field : Maybe Grid.Context -> Player -> Html.Html
 field address player =

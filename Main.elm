@@ -15,6 +15,7 @@ import Effects
 import Player
 import Ship
 import Grid
+import AI
 
 ---- HELPERS ----
 
@@ -34,11 +35,16 @@ main = .html <|
     , inputs =
       [ Signal.map toggleOrientation
           <| Keyboard.isDown 68 {- D -}
-      , Signal.map randomizeOpponent <| Time.every 1000
+      --, Signal.map randomizeOpponent <| Time.every 1000
+      , Signal.map updateSeed <| Time.every 0
       ]
     }
 
 ---- INPUT PROCESSORS ----
+
+updateSeed : Float -> Action
+updateSeed fl =
+  UpdateSeed <| floor fl
 
 toggleOrientation : Bool -> Action
 toggleOrientation bool =
@@ -59,6 +65,7 @@ defaultModel =
   , hoverPos = Nothing
   , player = Player.defaultPlayer
   , computer = Player.defaultComputer
+  , seed = 0
   }
 -- Model
 type alias Model =
@@ -67,13 +74,12 @@ type alias Model =
   , hoverPos : Maybe (Int, Int)
   , player : Player.Player
   , computer : Player.Player
+  , seed : Int
   }
 -- State
-type Turn = Me | Enemy
-
 type State
   = Setup
-  | Play Turn
+  | Play
   | GameOver
 
 (=>) = (,)
@@ -97,7 +103,7 @@ view : Signal.Address Action -> Model -> Html.Html
 view address model =
   let
     aimShoot =
-      if model.state == Play Me then
+      if model.state == Play then
         Just 
          { hover = Signal.forwardTo address PlayAim
          , click = Signal.forwardTo address PlayShoot
@@ -110,7 +116,7 @@ view address model =
     content =
       wrapper <| (setupControlsView address model.player selectedShipId) ++
         [ spacer
-        , Grid.toHtml aimShoot model.computer.trackingGrid
+        , Grid.toHtml aimShoot model.player.trackingGrid
         , spacer
         , Player.field Nothing model.computer
         ]
@@ -219,9 +225,9 @@ type Action
   | SetupSelectShip (Maybe Int)
   | SetupShowShip (Maybe (Int, Int))
   | SetupAddShip (Int, Int)
-  | SetupPlay
   | PlayAim (Maybe (Int, Int))
   | PlayShoot (Int, Int)
+  | UpdateSeed Int
   | NoOp
 
 update : Action -> Model -> Model
@@ -259,21 +265,21 @@ update action model =
               { model | player <- newPlayer
                       , selectedShipId <- nextShipId }
           in
-            if not ready then nextModel else { nextModel | state <- Play Me }
+            if not ready then nextModel
+              else { nextModel | state <- Play 
+                               , computer <- Player.random model.seed }
         Nothing ->
           model
-    SetupPlay ->
-      { model | state <- Play Me }
     PlayAim position ->
       model
     PlayShoot pos ->
-
-      { model | computer <- Player.shoot pos model.computer }
+      let
+        (player, computer) = Player.shoot pos model.player model.computer
+        (newComputer, newPlayer) = AI.randomShot model.seed computer player
+      in
+      { model | player <- newPlayer
+              , computer <- newComputer }
+              --, seed <- model.seed + 1 } -- Is this OK to do?
+    UpdateSeed seed ->
+      { model | seed <- seed }
     NoOp -> model
-
-toIntOrDefaultOrZero : String -> Int -> Int
-toIntOrDefaultOrZero stringToConvert default =
-  if stringToConvert == "" then 0 else
-  case String.toInt stringToConvert of
-    Ok n -> n
-    _ -> default

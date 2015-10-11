@@ -10,6 +10,7 @@ module Grid
   , setCell
   , getHeight
   , getWidth
+  , getUnknownPositions
   , shipInBounds
   ) where
 
@@ -84,19 +85,25 @@ setCell : Loc.Location -> Cell -> Grid -> Grid
 setCell (row, col) cell grid =
   Matrix.set col row cell grid
 
+getUnknownPositions : Grid -> List (Int, Int)
+getUnknownPositions grid =
+  grid
+    |> Matrix.toIndexedArray
+    |> Array.filter (snd >> ((==) Unknown))
+    |> Array.map fst
+    |> Array.toList
+    |> List.map (\(y,x) -> (x,y))
+
+-- TODO Maybe return a (Maybe Cell)?
 shoot : Loc.Location -> Grid -> Cell
 shoot (row, col) grid =
   case Matrix.get col row grid of
     Just cell ->
       case cell of
-        Ship _ ->
-          Ship True
-        Empty _ ->
-          Empty True
-        Sunk ->
-          Sunk
-        Unknown ->
-          Unknown
+        Ship _ -> Ship True
+        Empty _ -> Empty True
+        Sunk -> cell
+        Unknown -> cell
     Nothing -> -- Error
       Empty False
 
@@ -113,7 +120,7 @@ isShipSunk ship grid =
     ship
       |> Ship.getShipCoordinates
       |> List.map isHit
-      |> List.foldr (&&) True
+      |> List.all identity
 
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))

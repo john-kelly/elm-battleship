@@ -5,6 +5,7 @@ module Grid
   , emptyPrimaryGrid
   , emptyTrackingGrid
   , addShip
+  , isShipSunk
   , addInvalidShip
   , shoot
   , setCell
@@ -94,7 +95,32 @@ getUnknownPositions grid =
     |> Array.toList
     |> List.map (\(y,x) -> (x,y))
 
--- TODO Maybe return a (Maybe Cell)?
+isCellSunk : Loc.Location -> Grid -> Bool
+isCellSunk (row, col) grid =
+  case Matrix.get col row grid of
+    Just cell -> if cell == Sunk then True else False
+    Nothing -> False
+
+isCellHit : Loc.Location -> Grid -> Bool
+isCellHit (row, col) grid =
+  case Matrix.get col row grid of
+    Just cell -> if cell == Sunk then True else False
+    Nothing -> False
+
+isShipSunk : Ship.Ship -> Grid -> Bool
+isShipSunk ship grid =
+  ship
+    |> Ship.getShipCoordinates
+    |> List.map (\coord -> isCellSunk coord grid)
+    |> List.all identity
+
+isShipHit : Ship.Ship -> Grid -> Bool
+isShipHit ship grid =
+  ship
+    |> Ship.getShipCoordinates
+    |> List.map (\coord -> isCellHit coord grid)
+    |> List.all identity
+
 shoot : Loc.Location -> Grid -> Cell
 shoot (row, col) grid =
   case Matrix.get col row grid of
@@ -106,21 +132,6 @@ shoot (row, col) grid =
         Unknown -> cell
     Nothing -> -- Error
       Empty False
-
-isShipSunk : Ship.Ship -> Grid -> Bool
-isShipSunk ship grid =
-  let
-    isHit (row, column) =
-      case Matrix.get column row grid of
-        Just cell ->
-          if cell == (Ship True) then True else False
-        Nothing ->
-          False
-  in
-    ship
-      |> Ship.getShipCoordinates
-      |> List.map isHit
-      |> List.all identity
 
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))

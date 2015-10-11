@@ -18,7 +18,7 @@ randomShot seed player enemy =
     shotPos =
       unkownPositions
         |> Array.fromList
-        |> Array.get randomInt
+        |> Array.get (randomInt - 1)
   in
     case shotPos of
       Just pos ->

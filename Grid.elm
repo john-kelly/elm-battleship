@@ -130,6 +130,7 @@ getUnknownPositions grid =
     |> Array.filter (snd >> ((==) Unknown))
     |> Array.map fst
     |> Array.toList
+    |> List.map (\(y,x) -> (x,y))
 
 -- TODO Maybe return a (Maybe Cell)?
 shoot : (Int, Int) -> Grid -> Cell

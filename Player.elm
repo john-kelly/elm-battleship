@@ -84,6 +84,13 @@ allShipsAdded player =
     |> List.map .added
     |> List.all identity
 
+allShipsSunk : Player -> Bool
+allShipsSunk player =
+  player
+    |> getShips
+    |> List.map (\ship -> Grid.isShipSunk ship player.primaryGrid)
+    |> List.all identity
+
 updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
 updateShip shipId fn player =
   let

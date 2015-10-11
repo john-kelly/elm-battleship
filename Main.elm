@@ -36,7 +36,7 @@ main = .html <|
       [ Signal.map toggleOrientation
           <| Keyboard.isDown 68 {- D -}
       --, Signal.map randomizeOpponent <| Time.every 1000
-      , Signal.map updateSeed <| Time.every 0
+      , Signal.map updateSeed <| Time.every 1000
       ]
     }
 
@@ -114,48 +114,35 @@ view address model =
     spacer = Html.div
       [Html.Attributes.style ["height" => "40px"]] []
     content =
-      wrapper <| (setupControlsView address model.player selectedShipId) ++
+      wrapper <| (setupControlsView address model selectedShipId) ++
         [ spacer
         , Grid.toHtml aimShoot model.player.trackingGrid
         , spacer
         , Player.field Nothing model.computer
         ]
   in
-    content
-  --case model.state of
-  --  Setup ->
-  --    content
-  --  Play ->
-  --    content
-  --    --wrapper
-  --    --  [ Html.div []
-  --    --    [ Html.div [] [ Html.text "Player1" ]
-  --    --    , Player.field Nothing model.player
-  --    --    , Html.div [] [ Html.text "Player2" ]
-  --    --    , Player.field aimShoot model.computer
-  --    --    ]
-  --    --  ]
-  --  GameOver ->
-  --    wrapper
-  --      [ Player.field Nothing model.player
-  --      , Player.field Nothing model.computer
-  --      ]
+    wrapper <| (setupControlsView address model selectedShipId) ++
+      [ spacer
+      , Grid.toHtml aimShoot model.player.trackingGrid
+      , spacer
+      , Player.field Nothing model.computer
+      ]
 
 
-setupControlsView : Signal.Address Action -> Player.Player -> Maybe Int -> List Html.Html
-setupControlsView address player selectedShipId =
+setupControlsView : Signal.Address Action -> Model -> Maybe Int -> List Html.Html
+setupControlsView address model selectedShipId =
   let
     hoverClick = Just
       { hover = Signal.forwardTo address SetupShowShip
       , click = Signal.forwardTo address SetupAddShip
       }
     shipSelector = Html.div [Html.Attributes.style ["display" => "flex", "overflow" => "hidden", "border-radius" => "10px"]] <|
-      List.map (shipFieldView address selectedShipId) (Player.getShips player)
+      List.map (shipFieldView address selectedShipId) (Player.getShips model.player)
     hint = Html.div [Html.Attributes.style ["margin" => "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
   in
     [ shipSelector
     , hint
-    , Player.field hoverClick player
+    , Player.previewShip hoverClick model.hoverPos selectedShipId model.player
     ]
 
 -- Depending on the Action render the proper html input.
@@ -241,33 +228,31 @@ update action model =
         { model | computer <- Player.random seed }
     SetupOrientationToggle ->
       case model.selectedShipId of
-        Just id ->
-          { model | player <- Player.turnShip id model.hoverPos model.player }
+        Just shipId ->
+          { model | player <- Player.updateShip shipId Ship.toggleOrientation model.player }
         Nothing ->
           model
     SetupSelectShip shipId ->
       { model | selectedShipId <- shipId }
-    SetupShowShip pos ->
+    SetupShowShip maybePos ->
+      { model | hoverPos <- maybePos }
+    SetupAddShip pos ->
       case model.selectedShipId of
-        Just id ->
-          { model | player <- Player.moveShip id pos model.player
-                  , hoverPos <- pos }
-        Nothing ->
-          { model | hoverPos <- Nothing}
-    SetupAddShip _ ->
-      case model.selectedShipId of
-        Just id ->
+        Just shipId ->
           let
-            newPlayer = Player.addShip id model.player
+            newPlayer =
+              model.player
+                |> Player.updateShip shipId (\ship -> Ship.setLocation pos ship)
+                |> Player.addShip shipId
             nextShipId = Player.nextNotAddedShipId newPlayer
-            ready = nextShipId == Nothing -- Being a little smart here: if there are no ships left to be added, then we're ready to play!
-            nextModel =
-              { model | player <- newPlayer
-                      , selectedShipId <- nextShipId }
           in
-            if not ready then nextModel
-              else { nextModel | state <- Play 
-                               , computer <- Player.random model.seed }
+            --if not ready then nextModel else { nextModel | state <- Play, computer <- Player.random model.seed }
+            { model |
+                player <- newPlayer,
+                computer <- Player.random model.seed,
+                selectedShipId <- nextShipId,
+                state <- if nextShipId == Nothing then Play  else model.state
+            }
         Nothing ->
           model
     PlayAim position ->
@@ -282,4 +267,5 @@ update action model =
               --, seed <- model.seed + 1 } -- Is this OK to do?
     UpdateSeed seed ->
       { model | seed <- seed }
+    NoOp -> model
     NoOp -> model

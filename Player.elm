@@ -6,13 +6,13 @@ module Player
   , allShipsAdded
   , getShips
   , updateShip
-  , turnShip
-  , moveShip
   , updateGrid
   , nextNotAddedShipId
   , addShip
   , shoot
   , field
+  , previewShip
+  , canAddShip
   ) where
 
 -- The player manages the syn b/w the ships in a fleet and the grid.
@@ -28,6 +28,7 @@ import Matrix
 -- Battleship
 import Fleet
 import Grid
+import Location as Loc
 import Ship
 
 -- Player
@@ -65,7 +66,7 @@ addShip : Int -> Player -> Player
 addShip shipId player =
   case Fleet.getShip shipId player.fleet of
     Just ship ->
-      if Grid.canAddShip ship player.fleet player.primaryGrid then
+      if canAddShip ship player then
         { player |
             fleet <- Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
             primaryGrid <- Grid.addShip ship player.primaryGrid
@@ -88,7 +89,7 @@ updateShip shipId fn player =
   in
     { player | fleet <- newShip }
 
-turnShip : Int -> Maybe (Int, Int) -> Player -> Player
+{--turnShip : Int -> Maybe (Int, Int) -> Player -> Player
 turnShip shipId pos player =
   let
     -- Find current ship by id
@@ -110,39 +111,14 @@ turnShip shipId pos player =
   in
     updateGrid nextGrid player
       |> updateShip shipId (\_ -> nextShip)
+--}
 
--- Reposition ship on the grid:
-  -- 1. Erase the current one
-  -- 2. Draw the new one (if given position)
-moveShip : Int -> Maybe (Int, Int) -> Player -> Player
-moveShip shipId position player =
-  let
-    -- Find current ship by id
-    ship = -- TODO: Get rid of this mess
-      case Fleet.getShip shipId player.fleet of
-        Just ship ->
-          ship
-        Nothing -> -- Never gonna happen
-          Ship.init 1 Ship.Horizontal (0,0)
-    -- Erase the current ship
-    grid = Grid.hideShip ship player.fleet player.primaryGrid
-  in
-    case position of
-      Just pos -> -- New position
-        let
-          nextShip =
-            case Fleet.getShip shipId player.fleet of
-              Just ship ->
-                Ship.setLocation pos ship
-              Nothing -> -- Never gonna happen
-                Ship.init 1 Ship.Horizontal (0,0)
-          -- Put the next ship on the grid
-          newGrid = Grid.showShip nextShip player.fleet grid
-          fn s = Ship.setLocation pos s
-        in
-        updateGrid newGrid <| updateShip shipId fn player
-      Nothing -> -- Old position (hide ship)
-        updateGrid grid player
+canAddShip : Ship.Ship -> Player -> Bool
+canAddShip ship player =
+  -- order here is important for optimization. `shipInBounds` is cheap
+  if | not (Grid.shipInBounds ship player.primaryGrid) -> False
+     | Fleet.shipOverlaps ship player.fleet -> False
+     | otherwise -> True
 
 updateGrid : Grid.Grid -> Player -> Player
 updateGrid grid player =
@@ -153,12 +129,18 @@ getShips player =
   player.fleet
     |> Fleet.toList
 
+getShip : Int -> Player -> Maybe Ship.Ship
+getShip shipId player =
+  Fleet.getShip shipId player.fleet
+
 nextNotAddedShipId : Player -> Maybe Int
 nextNotAddedShipId player =
   let
-    ship = (getShips player)
-      |> List.filter (not << .added)
-      |> List.head
+    ship =
+      player
+        |> getShips
+        |> List.filter (not << .added)
+        |> List.head
   in
     case ship of
       Just s -> Just s.id
@@ -174,9 +156,47 @@ shoot pos enemy =
     { enemy | trackingGrid <- trackingGrid
             , primaryGrid <- primaryGrid }
 
+previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player -> Html.Html
+previewShip clickHover maybeHoverPos maybeShipId player =
+  let
+    noPreview =
+      Html.div []
+        [ player.primaryGrid
+            |> Grid.toHtml clickHover
+        ]
+    preview ship =
+      Html.div []
+        [ player.primaryGrid
+            |> Grid.addShip ship
+            |> Grid.toHtml clickHover
+        ]
+    invalid ship =
+      Html.div []
+        [ player.primaryGrid
+            |> Grid.addInvalidShip ship
+            |> Grid.toHtml clickHover
+        ]
+  in
+  case maybeShipId of
+    Nothing -> noPreview
+    Just shipId ->
+      case maybeHoverPos of
+        Nothing -> noPreview
+        Just hoverPos ->
+          case getShip shipId player of
+            Nothing -> noPreview
+            Just ship ->
+              let
+                shipToAdd = (Ship.setLocation hoverPos ship)
+              in
+                if canAddShip shipToAdd player then
+                  preview shipToAdd
+                else
+                  invalid shipToAdd
+
+
 field : Maybe Grid.Context -> Player -> Html.Html
-field address player =
+field context player =
   Html.div []
-  [ Grid.toHtml address player.primaryGrid
-  --, Grid.toHtml player.trackingGrid
+  [ Grid.toHtml context player.primaryGrid
   ]

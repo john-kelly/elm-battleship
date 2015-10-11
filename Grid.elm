@@ -4,14 +4,13 @@ module Grid
   , toHtml
   , emptyPrimaryGrid
   , emptyTrackingGrid
-  , canAddShip
   , addShip
-  , showShip
-  , hideShip
+  , addInvalidShip
   , shoot
   , setCell
   , getHeight
   , getWidth
+  , shipInBounds
   ) where
 
 -- Core
@@ -25,7 +24,7 @@ import Matrix
 import Matrix.Extra
 -- Battleship
 import Ship
-import Fleet
+import Location as Loc
 
 (:=) = (,)
 
@@ -33,10 +32,11 @@ import Fleet
 type alias IsHit = Bool
 type alias Grid = Matrix.Matrix Cell
 type Cell
-    = Ship IsHit
-    | Empty IsHit
-    | Sunk
-    | Unknown
+  = Ship IsHit
+  | Empty IsHit
+  | Sunk
+  | Unknown
+  | Invalid
 
 emptyPrimaryGrid : Grid
 emptyPrimaryGrid =
@@ -56,75 +56,37 @@ getWidth grid =
 
 addShip : Ship.Ship -> Grid -> Grid
 addShip ship grid =
-  let
-  shipCoordinates = Ship.getShipCoordinates ship
-  -- This is a bit tricky. Matrix.set takes col then row!!!
-  setToShip (row, column) = Matrix.set column row (Ship False)
-  in
-    List.foldr setToShip grid shipCoordinates
+  ship
+    |> Ship.getShipCoordinates
+    |> List.foldr (\(row, column) -> Matrix.set column row (Ship False)) grid
 
-setShip : Cell -> Ship.Ship -> Fleet.Fleet -> Grid -> Grid
-setShip newCell ship fleet grid =
-  let
-    transform col row oldCell =
-      if Ship.hasCoordinate (row, col) ship then newCell else oldCell
-  in
-    if canAddShip ship fleet grid then
-      grid
-        |> Matrix.indexedMap transform
-    else
-      grid
+addInvalidShip : Ship.Ship -> Grid -> Grid
+addInvalidShip ship grid =
+  ship
+    |> Ship.getShipCoordinates
+    |> List.foldr (\(row, column) -> Matrix.set column row Invalid) grid
 
-showShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
-showShip ship fleet grid =
-  setShip (Ship False) ship fleet grid
-
-hideShip : Ship.Ship -> Fleet.Fleet -> Grid -> Grid
-hideShip ship fleet grid =
-  setShip (Empty False) ship fleet grid
-
-canAddShip : Ship.Ship -> Fleet.Fleet -> Grid -> Bool
-canAddShip ship fleet grid =
-  -- order here is important for optimization. `shipInBounds` is cheap
-  if | not (shipInBounds ship grid) -> False
-     | shipOverlaps ship fleet -> False
-     | otherwise -> True
-
--- private helper for canAddShip
-shipOverlaps : Ship.Ship -> Fleet.Fleet -> Bool
-shipOverlaps ship fleet =
-  let
-  shipCoordinates = Ship.getShipCoordinates ship
-  in
-  fleet
-    |> Fleet.toList
-    |> List.filter .added
-    |> List.map Ship.getShipCoordinates
-    |> List.concat
-    |> List.foldr (\coord acc -> (List.member coord shipCoordinates) || acc) False
-
--- private helper for canAddShip
 shipInBounds : Ship.Ship -> Grid -> Bool
 shipInBounds ship grid =
   let
-  gridH = getHeight grid
-  gridW = getWidth grid
-  isInBounds (shipRow, shipColumn) =
-    shipRow >= 0 && shipRow < gridH && shipColumn >= 0 && shipColumn < gridW
+    gridH = getHeight grid
+    gridW = getWidth grid
+    isInBounds (shipRow, shipColumn) =
+      shipRow >= 0 && shipRow < gridH && shipColumn >= 0 && shipColumn < gridW
   in
-  ship
-    |> Ship.getShipCoordinates
-    |> List.map isInBounds
-    |> List.all identity
+    ship
+      |> Ship.getShipCoordinates
+      |> List.map isInBounds
+      |> List.all identity
 
 
-setCell : (Int, Int) -> Cell -> Grid -> Grid
-setCell (j, i) cell grid =
-  Matrix.set i j cell grid
+setCell : Loc.Location -> Cell -> Grid -> Grid
+setCell (row, col) cell grid =
+  Matrix.set col row cell grid
 
-shoot : (Int, Int) -> Grid -> Cell
-shoot (j, i) grid =
-  case Matrix.get i j grid of
+shoot : Loc.Location -> Grid -> Cell
+shoot (row, col) grid =
+  case Matrix.get col row grid of
     Just cell ->
       case cell of
         Ship _ ->
@@ -179,6 +141,7 @@ cellToHtml hoverClick y x cell =
             Ship False -> events hc
             Empty False -> events hc
             Unknown -> events hc
+            Invalid -> events hc
             Ship True -> []
             Empty True -> []
             Sunk -> []
@@ -202,6 +165,8 @@ cellToHtml hoverClick y x cell =
         box "#99C2E1" -- Light blue
     Unknown -> -- "?"
       box "#F3F38B"
+    Invalid ->
+      box "#FF0000"
 
 toHtmlRows : Matrix.Matrix Html.Html -> List Html.Html
 toHtmlRows matrixHtml =

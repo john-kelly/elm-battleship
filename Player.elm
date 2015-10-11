@@ -74,7 +74,7 @@ addShip shipId player =
             -- This is important here. Both the ship in the fleet and the grid
             -- are updated when a ship is added.
             fleet <- Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
-            primaryGrid <- Grid.addShip ship player.primaryGrid
+            primaryGrid <- Grid.addShipCoords (Ship.getShipCoordinates ship) player.primaryGrid
         }
       else
         player
@@ -135,8 +135,6 @@ shoot : Loc.Location -> Player -> Player -> (Player, Player)
 shoot pos player enemy =
   let
     shotCell = Grid.shoot pos enemy.primaryGrid
-    trackingGrid = Grid.setCell pos shotCell player.trackingGrid
-    primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
     isSunk =
       --if shotCell == Grid.(Ship True) then
         -- Check if the ship has been sunk
@@ -155,6 +153,8 @@ shoot pos player enemy =
           |> List.foldr (\ship grid -> if Ship.hasCoordinate pos ship then Grid.sinkShip ship grid else grid) grid
       else
         grid
+    trackingGrid = Grid.setCoord shotCell pos player.trackingGrid
+    primaryGrid = Grid.setCoord shotCell pos enemy.primaryGrid
   in
     (,) { player | trackingGrid <- updateIfSunk trackingGrid }
         { enemy | primaryGrid <- updateIfSunk primaryGrid }
@@ -170,13 +170,13 @@ previewShip clickHover maybeHoverPos maybeShipId player =
     preview ship =
       Html.div []
         [ player.primaryGrid
-            |> Grid.addShip ship
+            |> Grid.addShipCoords (Ship.getShipCoordinates ship)
             |> Grid.toHtml clickHover
         ]
     invalid ship =
       Html.div []
         [ player.primaryGrid
-            |> Grid.addInvalidShip ship
+            |> Grid.addInvalidCoords (Ship.getShipCoordinates ship)
             |> Grid.toHtml clickHover
         ]
   in

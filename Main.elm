@@ -104,7 +104,7 @@ view address model =
   let
     aimShoot =
       if model.state == Play then
-        Just 
+        Just
          { hover = Signal.forwardTo address PlayAim
          , click = Signal.forwardTo address PlayShoot
          }
@@ -113,13 +113,6 @@ view address model =
     selectedShipId = model.selectedShipId
     spacer = Html.div
       [Html.Attributes.style ["height" => "40px"]] []
-    content =
-      wrapper <| (setupControlsView address model selectedShipId) ++
-        [ spacer
-        , Grid.toHtml aimShoot model.player.trackingGrid
-        , spacer
-        , Player.field Nothing model.computer
-        ]
   in
     wrapper <| (setupControlsView address model selectedShipId) ++
       [ spacer

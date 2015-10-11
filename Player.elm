@@ -10,7 +10,8 @@ module Player
   , nextNotAddedShipId
   , addShip
   , shoot
-  , field
+  , viewPrimaryGrid
+  , viewTrackingGrid
   , previewShip
   , canAddShip
   ) where
@@ -131,7 +132,7 @@ nextNotAddedShipId player =
       Just s -> Just s.id
       Nothing -> Nothing
 
-shoot : (Int, Int) -> Player -> Player -> (Player, Player)
+shoot : Loc.Location -> Player -> Player -> (Player, Player)
 shoot pos player enemy =
   let
     shotCell = Grid.shoot pos enemy.primaryGrid
@@ -197,9 +198,10 @@ previewShip clickHover maybeHoverPos maybeShipId player =
                 else
                   invalid shipToAdd
 
+viewTrackingGrid : Maybe Grid.Context -> Player -> Html.Html
+viewTrackingGrid context player =
+  Html.div [] [ Grid.toHtml context player.trackingGrid ]
 
-field : Maybe Grid.Context -> Player -> Html.Html
-field context player =
-  Html.div []
-  [ Grid.toHtml context player.primaryGrid
-  ]
+viewPrimaryGrid : Maybe Grid.Context -> Player -> Html.Html
+viewPrimaryGrid context player =
+  Html.div [] [ Grid.toHtml context player.primaryGrid ]

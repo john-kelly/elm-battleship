@@ -68,6 +68,8 @@ addShip shipId player =
     Just ship ->
       if canAddShip ship player then
         { player |
+            -- This is important here. Both the ship in the fleet and the grid
+            -- are updated when a ship is added.
             fleet <- Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
             primaryGrid <- Grid.addShip ship player.primaryGrid
         }
@@ -88,30 +90,6 @@ updateShip shipId fn player =
     newShip = Fleet.updateShip shipId fn player.fleet
   in
     { player | fleet <- newShip }
-
-{--turnShip : Int -> Maybe (Int, Int) -> Player -> Player
-turnShip shipId pos player =
-  let
-    -- Find current ship by id
-    ship =
-      case Fleet.getShip shipId player.fleet of
-        Just ship ->
-          ship
-        Nothing -> -- Never gonna happen
-          Ship.init 1 Ship.Horizontal (0,0)
-    -- Erase current ship from the grid
-    grid = Grid.hideShip ship player.fleet player.primaryGrid
-    nextShip = Ship.toggleOrientation ship
-    nextGrid =
-      case pos of
-        Just _ ->
-          Grid.showShip nextShip player.fleet grid
-        Nothing ->
-          grid
-  in
-    updateGrid nextGrid player
-      |> updateShip shipId (\_ -> nextShip)
---}
 
 canAddShip : Ship.Ship -> Player -> Bool
 canAddShip ship player =

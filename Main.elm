@@ -107,33 +107,13 @@ view address model =
     selectedShipId = model.selectedShipId
     spacer = Html.div
       [Html.Attributes.style ["height" => "40px"]] []
-    content =
-      wrapper <| (setupControlsView address model selectedShipId) ++
-        [ spacer
-        , Grid.toHtml aimShoot model.computer.trackingGrid
-        , spacer
-        , Player.field Nothing model.computer
-        ]
   in
-    content
-  --case model.state of
-  --  Setup ->
-  --    content
-  --  Play ->
-  --    content
-  --    --wrapper
-  --    --  [ Html.div []
-  --    --    [ Html.div [] [ Html.text "Player1" ]
-  --    --    , Player.field Nothing model.player
-  --    --    , Html.div [] [ Html.text "Player2" ]
-  --    --    , Player.field aimShoot model.computer
-  --    --    ]
-  --    --  ]
-  --  GameOver ->
-  --    wrapper
-  --      [ Player.field Nothing model.player
-  --      , Player.field Nothing model.computer
-  --      ]
+    wrapper <| (setupControlsView address model selectedShipId) ++
+      [ spacer
+      , Grid.toHtml aimShoot model.computer.trackingGrid
+      , spacer
+      , Player.field Nothing model.computer
+      ]
 
 
 setupControlsView : Signal.Address Action -> Model -> Maybe Int -> List Html.Html
@@ -265,13 +245,5 @@ update action model =
     PlayAim position ->
       model
     PlayShoot pos ->
-
       { model | computer <- Player.shoot pos model.computer }
     NoOp -> model
-
-toIntOrDefaultOrZero : String -> Int -> Int
-toIntOrDefaultOrZero stringToConvert default =
-  if stringToConvert == "" then 0 else
-  case String.toInt stringToConvert of
-    Ok n -> n
-    _ -> default

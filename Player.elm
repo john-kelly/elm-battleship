@@ -24,7 +24,6 @@ module Player
 -- Evan
 import Html
 -- 3rd Party
-import Matrix
 -- Battleship
 import Fleet
 import Grid
@@ -84,6 +83,7 @@ allShipsAdded player =
     |> List.map .added
     |> List.all identity
 
+-- Win/lose checker
 allShipsSunk : Player -> Bool
 allShipsSunk player =
   player
@@ -137,9 +137,27 @@ shoot pos player enemy =
     shotCell = Grid.shoot pos enemy.primaryGrid
     trackingGrid = Grid.setCell pos shotCell player.trackingGrid
     primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
+    isSunk =
+      --if shotCell == Grid.(Ship True) then
+        -- Check if the ship has been sunk
+        -- Find ship from position
+        enemy.fleet
+          |> Fleet.toList
+          |> List.map (\s -> (Ship.hasCoordinate pos s, s))
+          |> List.map (\(hasCoord, s) -> if hasCoord then Grid.isShipDestroyed primaryGrid s else False)
+          |> List.any identity
+      --else
+      --  False
+    updateIfSunk grid =
+      if isSunk then
+        enemy.fleet
+          |> Fleet.toList
+          |> List.foldr (\ship grid -> if Ship.hasCoordinate pos ship then Grid.sinkShip ship grid else grid) grid
+      else
+        grid
   in
-    (,) { player | trackingGrid <- trackingGrid }
-        { enemy | primaryGrid <- primaryGrid }
+    (,) { player | trackingGrid <- updateIfSunk trackingGrid }
+        { enemy | primaryGrid <- updateIfSunk primaryGrid }
 
 previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player -> Html.Html
 previewShip clickHover maybeHoverPos maybeShipId player =

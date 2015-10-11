@@ -5,6 +5,8 @@ module Grid
   , emptyPrimaryGrid
   , emptyTrackingGrid
   , addShip
+  , isShipDestroyed
+  , sinkShip
   , isShipSunk
   , addInvalidShip
   , shoot
@@ -86,6 +88,7 @@ setCell : Loc.Location -> Cell -> Grid -> Grid
 setCell (row, col) cell grid =
   Matrix.set col row cell grid
 
+-- AI helper
 getUnknownPositions : Grid -> List (Int, Int)
 getUnknownPositions grid =
   grid
@@ -95,32 +98,6 @@ getUnknownPositions grid =
     |> Array.toList
     |> List.map (\(y,x) -> (x,y))
 
-isCellSunk : Loc.Location -> Grid -> Bool
-isCellSunk (row, col) grid =
-  case Matrix.get col row grid of
-    Just cell -> if cell == Sunk then True else False
-    Nothing -> False
-
-isCellHit : Loc.Location -> Grid -> Bool
-isCellHit (row, col) grid =
-  case Matrix.get col row grid of
-    Just cell -> if cell == Sunk then True else False
-    Nothing -> False
-
-isShipSunk : Ship.Ship -> Grid -> Bool
-isShipSunk ship grid =
-  ship
-    |> Ship.getShipCoordinates
-    |> List.map (\coord -> isCellSunk coord grid)
-    |> List.all identity
-
-isShipHit : Ship.Ship -> Grid -> Bool
-isShipHit ship grid =
-  ship
-    |> Ship.getShipCoordinates
-    |> List.map (\coord -> isCellHit coord grid)
-    |> List.all identity
-
 shoot : Loc.Location -> Grid -> Cell
 shoot (row, col) grid =
   case Matrix.get col row grid of
@@ -128,10 +105,40 @@ shoot (row, col) grid =
       case cell of
         Ship _ -> Ship True
         Empty _ -> Empty True
-        Sunk -> cell
-        Unknown -> cell
     Nothing -> -- Error
       Empty False
+
+isShipDestroyed : Grid -> Ship.Ship -> Bool
+isShipDestroyed grid ship  =
+  ship
+    |> Ship.getShipCoordinates
+    |> List.map (\coord -> isCellHit coord grid)
+    |> List.all identity
+
+isCellHit : Loc.Location -> Grid -> Bool
+isCellHit (row, col) grid =
+  case Matrix.get col row grid of
+    Just cell -> if cell == (Ship True) then True else False
+    Nothing -> False
+
+sinkShip : Ship.Ship -> Grid -> Grid
+sinkShip ship grid =
+  ship
+    |> Ship.getShipCoordinates
+    |> List.foldr (\(row, col) g -> Matrix.set col row Sunk g) grid
+
+isShipSunk : Ship.Ship -> Grid -> Bool
+isShipSunk ship grid =
+  let
+    isCellSunk (row, col) grid =
+      case Matrix.get col row grid of
+        Just cell -> if cell == Sunk then True else False
+        Nothing -> False
+  in
+  ship
+    |> Ship.getShipCoordinates
+    |> List.map (\coord -> isCellSunk coord grid)
+    |> List.all identity
 
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))
@@ -178,13 +185,15 @@ cellToHtml hoverClick y x cell =
         box "#808080" -- Gray
     Empty isHit ->
       if isHit then -- "O"
-        box "white"
+        box "lightgray"
       else -- " "
         box "#99C2E1" -- Light blue
     Unknown -> -- "?"
       box "#F3F38B"
     Invalid ->
       box "#FF0000"
+    Sunk ->
+      box "black"
 
 toHtmlRows : Matrix.Matrix Html.Html -> List Html.Html
 toHtmlRows matrixHtml =

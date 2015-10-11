@@ -261,4 +261,3 @@ update action model =
     UpdateSeed seed ->
       { model | seed <- seed }
     NoOp -> model
-    NoOp -> model

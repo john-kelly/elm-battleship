@@ -5,6 +5,7 @@ module Grid
   , emptyPrimaryGrid
   , emptyTrackingGrid
   , addShip
+  , addInvalidShip
   , shoot
   , setCell
   , getHeight
@@ -35,6 +36,7 @@ type Cell
   | Empty IsHit
   | Sunk
   | Unknown
+  | Invalid
 
 emptyPrimaryGrid : Grid
 emptyPrimaryGrid =
@@ -57,6 +59,12 @@ addShip ship grid =
   ship
     |> Ship.getShipCoordinates
     |> List.foldr (\(row, column) -> Matrix.set column row (Ship False)) grid
+
+addInvalidShip : Ship.Ship -> Grid -> Grid
+addInvalidShip ship grid =
+  ship
+    |> Ship.getShipCoordinates
+    |> List.foldr (\(row, column) -> Matrix.set column row Invalid) grid
 
 shipInBounds : Ship.Ship -> Grid -> Bool
 shipInBounds ship grid =
@@ -133,6 +141,7 @@ cellToHtml hoverClick y x cell =
             Ship False -> events hc
             Empty False -> events hc
             Unknown -> events hc
+            Invalid -> events hc
             Ship True -> []
             Empty True -> []
             Sunk -> []
@@ -156,6 +165,8 @@ cellToHtml hoverClick y x cell =
         box "#99C2E1" -- Light blue
     Unknown -> -- "?"
       box "#F3F38B"
+    Invalid ->
+      box "#FF0000"
 
 toHtmlRows : Matrix.Matrix Html.Html -> List Html.Html
 toHtmlRows matrixHtml =

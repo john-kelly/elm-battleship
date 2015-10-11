@@ -28,6 +28,7 @@ import Matrix
 -- Battleship
 import Fleet
 import Grid
+import Location as Loc
 import Ship
 
 -- Player
@@ -155,7 +156,7 @@ shoot pos enemy =
     { enemy | trackingGrid <- trackingGrid
             , primaryGrid <- primaryGrid }
 
-previewShip : Maybe Grid.Context -> Maybe (Int, Int) -> Maybe Int -> Player -> Html.Html
+previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player -> Html.Html
 previewShip clickHover maybeHoverPos maybeShipId player =
   let
     noPreview =
@@ -169,6 +170,12 @@ previewShip clickHover maybeHoverPos maybeShipId player =
             |> Grid.addShip ship
             |> Grid.toHtml clickHover
         ]
+    invalid ship =
+      Html.div []
+        [ player.primaryGrid
+            |> Grid.addInvalidShip ship
+            |> Grid.toHtml clickHover
+        ]
   in
   case maybeShipId of
     Nothing -> noPreview
@@ -178,7 +185,14 @@ previewShip clickHover maybeHoverPos maybeShipId player =
         Just hoverPos ->
           case getShip shipId player of
             Nothing -> noPreview
-            Just ship -> preview (Ship.setLocation hoverPos ship)
+            Just ship ->
+              let
+                shipToAdd = (Ship.setLocation hoverPos ship)
+              in
+                if canAddShip shipToAdd player then
+                  preview shipToAdd
+                else
+                  invalid shipToAdd
 
 
 field : Maybe Grid.Context -> Player -> Html.Html

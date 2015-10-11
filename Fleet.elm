@@ -6,6 +6,7 @@ module Fleet
   , getShip
   , updateShip
   , toList
+  , shipOverlaps
   ) where
 
 -- NOTE
@@ -66,7 +67,8 @@ addShip ship fleet =
   let
     length = List.length <| toList fleet
   in
-    Dict.insert length {ship | id <- length} fleet
+    fleet
+      |> Dict.insert length { ship | id <- length }
 
 getShip : Int -> Fleet -> Maybe Ship.Ship
 getShip shipId fleet =
@@ -83,3 +85,15 @@ toList fleet =
 updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Fleet -> Fleet
 updateShip shipId fn fleet =
   Dict.update shipId (Maybe.map fn) fleet
+
+shipOverlaps : Ship.Ship -> Fleet -> Bool
+shipOverlaps ship fleet =
+  let
+    shipCoordinates = Ship.getShipCoordinates ship
+  in
+    fleet
+      |> toList
+      |> List.filter .added
+      |> List.map Ship.getShipCoordinates
+      |> List.concat
+      |> List.foldr (\coord acc -> (List.member coord shipCoordinates) || acc) False

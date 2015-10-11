@@ -98,7 +98,7 @@ view address model =
   let
     aimShoot =
       if model.state == Play Me then
-        Just 
+        Just
          { hover = Signal.forwardTo address PlayAim
          , click = Signal.forwardTo address PlayShoot
          }
@@ -108,7 +108,7 @@ view address model =
     spacer = Html.div
       [Html.Attributes.style ["height" => "40px"]] []
     content =
-      wrapper <| (setupControlsView address model.player selectedShipId) ++
+      wrapper <| (setupControlsView address model selectedShipId) ++
         [ spacer
         , Grid.toHtml aimShoot model.computer.trackingGrid
         , spacer
@@ -136,20 +136,20 @@ view address model =
   --      ]
 
 
-setupControlsView : Signal.Address Action -> Player.Player -> Maybe Int -> List Html.Html
-setupControlsView address player selectedShipId =
+setupControlsView : Signal.Address Action -> Model -> Maybe Int -> List Html.Html
+setupControlsView address model selectedShipId =
   let
     hoverClick = Just
       { hover = Signal.forwardTo address SetupShowShip
       , click = Signal.forwardTo address SetupAddShip
       }
     shipSelector = Html.div [Html.Attributes.style ["display" => "flex", "overflow" => "hidden", "border-radius" => "10px"]] <|
-      List.map (shipFieldView address selectedShipId) (Player.getShips player)
+      List.map (shipFieldView address selectedShipId) (Player.getShips model.player)
     hint = Html.div [Html.Attributes.style ["margin" => "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
   in
     [ shipSelector
     , hint
-    , Player.field hoverClick player
+    , Player.previewShip hoverClick model.hoverPos selectedShipId model.player
     ]
 
 -- Depending on the Action render the proper html input.
@@ -236,30 +236,29 @@ update action model =
     SetupOrientationToggle ->
       case model.selectedShipId of
         Just id ->
-          { model | player <- Player.turnShip id model.hoverPos model.player }
+          model
+          --{ model | player <- Player.turnShip id model.hoverPos model.player }
         Nothing ->
           model
     SetupSelectShip shipId ->
       { model | selectedShipId <- shipId }
-    SetupShowShip pos ->
+    SetupShowShip maybePos ->
+      { model | hoverPos <- maybePos }
+    SetupAddShip pos ->
       case model.selectedShipId of
-        Just id ->
-          { model | player <- Player.moveShip id pos model.player
-                  , hoverPos <- pos }
-        Nothing ->
-          { model | hoverPos <- Nothing}
-    SetupAddShip _ ->
-      case model.selectedShipId of
-        Just id ->
+        Just shipId ->
           let
-            newPlayer = Player.addShip id model.player
+            newPlayer =
+              model.player
+                |> Player.updateShip shipId (\ship -> Ship.setLocation pos ship)
+                |> Player.addShip shipId
             nextShipId = Player.nextNotAddedShipId newPlayer
-            ready = nextShipId == Nothing -- Being a little smart here: if there are no ships left to be added, then we're ready to play!
-            nextModel =
-              { model | player <- newPlayer
-                      , selectedShipId <- nextShipId }
           in
-            if not ready then nextModel else { nextModel | state <- Play Me }
+            { model |
+                player <- newPlayer,
+                selectedShipId <- nextShipId,
+                state <- if nextShipId == Nothing then Play Me else model.state
+            }
         Nothing ->
           model
     SetupPlay ->

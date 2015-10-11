@@ -235,9 +235,8 @@ update action model =
         { model | computer <- Player.random seed }
     SetupOrientationToggle ->
       case model.selectedShipId of
-        Just id ->
-          model
-          --{ model | player <- Player.turnShip id model.hoverPos model.player }
+        Just shipId ->
+          { model | player <- Player.updateShip shipId Ship.toggleOrientation model.player }
         Nothing ->
           model
     SetupSelectShip shipId ->

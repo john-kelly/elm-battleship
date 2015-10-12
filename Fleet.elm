@@ -7,6 +7,7 @@ module Fleet
   , updateShip
   , toList
   , shipOverlaps
+  , getShipFromCoord
   ) where
 
 -- NOTE
@@ -19,6 +20,7 @@ import Random
 -- Evan
 -- 3rd Party
 -- Battleship
+import Location as Loc
 import Ship
 
 type alias Fleet =
@@ -85,6 +87,13 @@ toList fleet =
 updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Fleet -> Fleet
 updateShip shipId fn fleet =
   Dict.update shipId (Maybe.map fn) fleet
+
+getShipFromCoord : Loc.Location -> Fleet -> Maybe Ship.Ship
+getShipFromCoord coord fleet =
+  fleet
+    |> toList
+    |> List.filter (Ship.hasCoordinate coord)
+    |> List.head
 
 shipOverlaps : Ship.Ship -> Fleet -> Bool
 shipOverlaps ship fleet =

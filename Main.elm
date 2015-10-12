@@ -62,11 +62,14 @@ type alias Model =
   , computer : Player.Player
   , seed : Int
   }
+
+type Winner = Player1 | Player2
+
 -- State
 type State
   = Setup
   | Play
-  | GameOver
+  | GameOver Winner
 
 (:=) = (,)
 
@@ -78,38 +81,31 @@ wrapper htmlList =
   Html.main'
     [ Html.Attributes.style
       [ "display" := "flex"
-      , "flex-direction" := "column"
+      , "flex-direction" := "row"
       , "align-items" := "center"
       , "margin" := "50px 0px"
+      , "justify-content" := "center"
       ]
     ] htmlList
 
 view : Signal.Address Action -> Model -> Html.Html
 view address model =
   let
-    aimShoot =
-      if model.state == Play then
-        Just
-         { hover = Signal.forwardTo address PlayAim
-         , click = Signal.forwardTo address PlayShoot
-         }
-      else
-        Nothing
-    selectedShipId = model.selectedShipId
     spacer = Html.div
       [Html.Attributes.style ["height" := "40px"]] []
   in
-    wrapper <| (setupControlsView address model selectedShipId) ++
-      [ spacer
-      , Player.viewTrackingGrid aimShoot model.player
-      -- for debugging.
-      , spacer
-      , Player.viewPrimaryGrid Nothing model.computer
-      ]
+  case model.state of
+    Setup ->
+      wrapper <| setupView address model model.selectedShipId
+    Play ->
+      wrapper <| playView address model
+    GameOver winner ->
+      wrapper <| gameOverView winner
 
 
-setupControlsView : Signal.Address Action -> Model -> Maybe Int -> List Html.Html
-setupControlsView address model selectedShipId =
+
+setupView : Signal.Address Action -> Model -> Maybe Int -> List Html.Html
+setupView address model selectedShipId =
   let
     hoverClick = Just
       { hover = Signal.forwardTo address SetupShowShip
@@ -125,11 +121,38 @@ setupControlsView address model selectedShipId =
     hint = Html.div
       [ Html.Attributes.style ["margin" := "20px 0px"] ]
       [ Html.text "Press \"D\" to change ship's orientation" ]
+    shipSetup = Html.div
+      [ Html.Attributes.style
+        [ "text-align" := "center" ]
+      ]
+      [ hint, shipSelector ]
   in
-    [ shipSelector
-    , hint
+    [ shipSetup
     , Player.previewShip hoverClick model.hoverPos selectedShipId model.player
     ]
+
+playView : Signal.Address Action -> Model -> List Html.Html
+playView address model =
+  let
+    aimShoot =
+      Just
+       { hover = Signal.forwardTo address PlayAim
+       , click = Signal.forwardTo address PlayShoot
+       }
+  in
+    [ Player.viewPrimaryGrid Nothing model.player
+    , Player.viewTrackingGrid aimShoot model.player
+    ]
+
+gameOverView : Winner -> List Html.Html
+gameOverView winner =
+  let
+    gameOverMessage =
+      case winner of
+        Player1 -> "YOU WIN!!!"
+        Player2 -> "YOU ARE A LOSER!!!"
+  in
+    [ Html.text gameOverMessage ]
 
 shipFieldView : Signal.Address Action -> Maybe Int -> Ship.Ship -> Html.Html
 shipFieldView address selectedShipId ship =
@@ -248,10 +271,23 @@ update action model =
         (player, computer) = Player.shoot pos model.player model.computer
         (newComputer, newPlayer) = AI.randomShot model.seed computer player
       in
-      { model |
-        player <- newPlayer,
-        computer <- newComputer
-      }
+        if | Player.allShipsSunk computer ->
+              { model |
+                player <- player,
+                computer <- computer,
+                state <- GameOver Player1
+              }
+           | Player.allShipsSunk newPlayer ->
+              { model |
+                player <- newPlayer,
+                computer <- newComputer,
+                state <- GameOver Player2
+              }
+           | otherwise ->
+              { model |
+               player <- newPlayer,
+               computer <- newComputer
+              }
     UpdateSeed seed ->
       { model | seed <- seed }
     NoOp -> model

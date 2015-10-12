@@ -4,17 +4,17 @@ module Grid
   , toHtml
   , emptyPrimaryGrid
   , emptyTrackingGrid
-  , addShip
   , isShipDestroyed
   , sinkShip
   , isShipSunk
-  , addInvalidShip
+  , addInvalidCoords
+  , addShipCoords
   , shoot
-  , setCell
+  , setCoord
   , getHeight
   , getWidth
-  , getUnknownPositions
-  , shipInBounds
+  , getUnknownCoords
+  , coordsInBounds
   ) where
 
 -- Core
@@ -35,6 +35,7 @@ import Location as Loc
 -- Grid
 type alias IsHit = Bool
 type alias Grid = Matrix.Matrix Cell
+type alias Coord = Loc.Location
 type Cell
   = Ship IsHit
   | Empty IsHit
@@ -58,55 +59,63 @@ getWidth : Grid -> Int
 getWidth grid =
   Matrix.width grid
 
-addShip : Ship.Ship -> Grid -> Grid
-addShip ship grid =
-  ship
-    |> Ship.getShipCoordinates
-    |> List.foldr (\(row, column) -> Matrix.set column row (Ship False)) grid
+setCoord : Cell -> Coord -> Grid -> Grid
+setCoord cell (row, col) grid =
+  Matrix.set col row cell grid
 
-addInvalidShip : Ship.Ship -> Grid -> Grid
-addInvalidShip ship grid =
-  ship
-    |> Ship.getShipCoordinates
-    |> List.foldr (\(row, column) -> Matrix.set column row Invalid) grid
+setCoords : Cell -> List Coord -> Grid -> Grid
+setCoords cell coords grid =
+  coords
+    |> List.foldr (setCoord cell) grid
 
-shipInBounds : Ship.Ship -> Grid -> Bool
-shipInBounds ship grid =
+addInvalidCoords : List Coord -> Grid -> Grid
+addInvalidCoords coords grid =
+  grid
+    |> setCoords Invalid coords
+
+addShipCoords : List Coord -> Grid -> Grid
+addShipCoords coords grid =
+  grid
+    |> setCoords (Ship False) coords
+
+coordsInBounds : List Coord -> Grid -> Bool
+coordsInBounds coords grid =
   let
     gridH = getHeight grid
     gridW = getWidth grid
     isInBounds (shipRow, shipColumn) =
       shipRow >= 0 && shipRow < gridH && shipColumn >= 0 && shipColumn < gridW
   in
-    ship
-      |> Ship.getShipCoordinates
+    coords
       |> List.map isInBounds
       |> List.all identity
 
+isCoordCellType : Cell -> Coord -> Grid -> Bool
+isCoordCellType cellType (row, col) grid =
+  case Matrix.get col row grid of
+    Just cell -> if cell == cellType then True else False
+    Nothing -> False
 
-setCell : Loc.Location -> Cell -> Grid -> Grid
-setCell (row, col) cell grid =
-  Matrix.set col row cell grid
+isCellUnkown : Coord -> Grid -> Bool
+isCellUnkown coord grid =
+  isCoordCellType Unknown coord grid
 
--- AI helper
-getUnknownPositions : Grid -> List (Int, Int)
-getUnknownPositions grid =
+isCellSunk : Coord -> Grid -> Bool
+isCellSunk coord grid =
+  isCoordCellType Sunk coord grid
+
+isCellHit : Coord -> Grid -> Bool
+isCellHit coord grid =
+  isCoordCellType (Ship True) coord grid
+
+getUnknownCoords : Grid -> List Coord
+getUnknownCoords grid =
   grid
     |> Matrix.toIndexedArray
     |> Array.filter (snd >> ((==) Unknown))
     |> Array.map fst
     |> Array.toList
-    |> List.map (\(y,x) -> (x,y))
-
-shoot : Loc.Location -> Grid -> Cell
-shoot (row, col) grid =
-  case Matrix.get col row grid of
-    Just cell ->
-      case cell of
-        Ship _ -> Ship True
-        Empty _ -> Empty True
-    Nothing -> -- Error
-      Empty False
+    |> List.map (\(col, row) -> (row, col))
 
 isShipDestroyed : Grid -> Ship.Ship -> Bool
 isShipDestroyed grid ship  =
@@ -114,12 +123,6 @@ isShipDestroyed grid ship  =
     |> Ship.getShipCoordinates
     |> List.map (\coord -> isCellHit coord grid)
     |> List.all identity
-
-isCellHit : Loc.Location -> Grid -> Bool
-isCellHit (row, col) grid =
-  case Matrix.get col row grid of
-    Just cell -> if cell == (Ship True) then True else False
-    Nothing -> False
 
 sinkShip : Ship.Ship -> Grid -> Grid
 sinkShip ship grid =
@@ -139,6 +142,18 @@ isShipSunk ship grid =
     |> Ship.getShipCoordinates
     |> List.map (\coord -> isCellSunk coord grid)
     |> List.all identity
+
+shoot : Coord -> Grid -> Cell
+shoot (row, col) grid =
+  case Matrix.get col row grid of
+    Just cell ->
+      case cell of
+        Ship _ -> Ship True
+        Empty _ -> Empty True
+        Sunk -> cell
+        Unknown -> cell
+    Nothing -> -- Error
+      Empty False
 
 type alias Context =
   { hover : Signal.Address (Maybe (Int, Int))

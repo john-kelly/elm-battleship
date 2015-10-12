@@ -37,6 +37,9 @@ type alias Player =
     , primaryGrid : Grid.Grid
     , trackingGrid : Grid.Grid
     }
+
+type alias ShipId = Int
+
 defaultPlayer : Player
 defaultPlayer =
     { fleet = Fleet.defaultFleet
@@ -62,7 +65,7 @@ random seed =
     -- Is it okay to just increment a seed to get a new one?
     if allShipsAdded newPlayer then newPlayer else random <| seed + 1
 
-addShip : Int -> Player -> Player
+addShip : ShipId -> Player -> Player
 addShip shipId player =
   case Fleet.getShip shipId player.fleet of
     Just ship ->
@@ -71,11 +74,18 @@ addShip shipId player =
             -- This is important here. Both the ship in the fleet and the grid
             -- are updated when a ship is added.
             fleet <- Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
-            primaryGrid <- Grid.addShip ship player.primaryGrid
+            primaryGrid <- Grid.addShipCoords (Ship.getShipCoordinates ship) player.primaryGrid
         }
       else
         player
     Nothing -> player
+
+canAddShip : Ship.Ship -> Player -> Bool
+canAddShip ship player =
+  -- order here is important for optimization. `shipInBounds` is cheap
+  if | not (Grid.coordsInBounds (Ship.getShipCoordinates ship) player.primaryGrid) -> False
+     | Fleet.shipOverlaps ship player.fleet -> False
+     | otherwise -> True
 
 allShipsAdded : Player -> Bool
 allShipsAdded player =
@@ -92,19 +102,12 @@ allShipsSunk player =
     |> List.map (\ship -> Grid.isShipSunk ship player.primaryGrid)
     |> List.all identity
 
-updateShip : Int -> (Ship.Ship -> Ship.Ship) -> Player -> Player
+updateShip : ShipId -> (Ship.Ship -> Ship.Ship) -> Player -> Player
 updateShip shipId fn player =
   let
     newShip = Fleet.updateShip shipId fn player.fleet
   in
     { player | fleet <- newShip }
-
-canAddShip : Ship.Ship -> Player -> Bool
-canAddShip ship player =
-  -- order here is important for optimization. `shipInBounds` is cheap
-  if | not (Grid.shipInBounds ship player.primaryGrid) -> False
-     | Fleet.shipOverlaps ship player.fleet -> False
-     | otherwise -> True
 
 updateGrid : Grid.Grid -> Player -> Player
 updateGrid grid player =
@@ -115,11 +118,7 @@ getShips player =
   player.fleet
     |> Fleet.toList
 
-getShip : Int -> Player -> Maybe Ship.Ship
-getShip shipId player =
-  Fleet.getShip shipId player.fleet
-
-nextNotAddedShipId : Player -> Maybe Int
+nextNotAddedShipId : Player -> Maybe ShipId
 nextNotAddedShipId player =
   let
     ship =
@@ -136,8 +135,6 @@ shoot : Loc.Location -> Player -> Player -> (Player, Player)
 shoot pos player enemy =
   let
     shotCell = Grid.shoot pos enemy.primaryGrid
-    trackingGrid = Grid.setCell pos shotCell player.trackingGrid
-    primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
     isSunk =
       --if shotCell == Grid.(Ship True) then
         -- Check if the ship has been sunk
@@ -156,11 +153,13 @@ shoot pos player enemy =
           |> List.foldr (\ship grid -> if Ship.hasCoordinate pos ship then Grid.sinkShip ship grid else grid) grid
       else
         grid
+    trackingGrid = Grid.setCoord shotCell pos player.trackingGrid
+    primaryGrid = Grid.setCoord shotCell pos enemy.primaryGrid
   in
     (,) { player | trackingGrid <- updateIfSunk trackingGrid }
         { enemy | primaryGrid <- updateIfSunk primaryGrid }
 
-previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player -> Html.Html
+previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe ShipId -> Player -> Html.Html
 previewShip clickHover maybeHoverPos maybeShipId player =
   let
     noPreview =
@@ -171,13 +170,13 @@ previewShip clickHover maybeHoverPos maybeShipId player =
     preview ship =
       Html.div []
         [ player.primaryGrid
-            |> Grid.addShip ship
+            |> Grid.addShipCoords (Ship.getShipCoordinates ship)
             |> Grid.toHtml clickHover
         ]
     invalid ship =
       Html.div []
         [ player.primaryGrid
-            |> Grid.addInvalidShip ship
+            |> Grid.addInvalidCoords (Ship.getShipCoordinates ship)
             |> Grid.toHtml clickHover
         ]
   in
@@ -187,7 +186,7 @@ previewShip clickHover maybeHoverPos maybeShipId player =
       case maybeHoverPos of
         Nothing -> noPreview
         Just hoverPos ->
-          case getShip shipId player of
+          case Fleet.getShip shipId player.fleet of
             Nothing -> noPreview
             Just ship ->
               let

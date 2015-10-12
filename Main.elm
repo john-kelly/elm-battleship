@@ -17,15 +17,6 @@ import Ship
 import Grid
 import AI
 
----- HELPERS ----
-
--- TODO For some reason using this as a signal-seed doesn't work - the model stays `defaultModel`; probably because the signal somehow updates _before_ `computer = defaultCompter` occurs
-startTime =
-  Signal.map fst <| Time.timestamp <| Signal.constant ()
-
-freeze signal =
-  Signal.sampleOn (Signal.constant 0) signal
-
 ---- MAIN ----
 main = .html <|
   StartApp.start
@@ -33,10 +24,8 @@ main = .html <|
     , view = view
     , update = (\ a m -> (update a m, Effects.none))
     , inputs =
-      [ Signal.map toggleOrientation
-          <| Keyboard.isDown 68 {- D -}
-      --, Signal.map randomizeOpponent <| Time.every 1000
-      , Signal.map updateSeed <| Time.every 1000
+      [ Signal.map toggleOrientation <| Keyboard.isDown 68 {- D -}
+      , Signal.map updateSeed <| Time.every 3000
       ]
     }
 
@@ -53,11 +42,8 @@ toggleOrientation bool =
   else
     NoOp
 
-randomizeOpponent : Float -> Action
-randomizeOpponent float =
-  SetupRandomOpponent <| floor float
-
 ---- MODEL ----
+
 defaultModel : Model
 defaultModel =
   { state = Setup
@@ -82,20 +68,19 @@ type State
   | Play
   | GameOver
 
-(=>) = (,)
+(:=) = (,)
 
 ---- VIEW ----
 
 -- Global wrapper
-
 wrapper : List Html.Html -> Html.Html
 wrapper htmlList =
   Html.main'
     [ Html.Attributes.style
-      [ "display" => "flex"
-      , "flex-direction" => "column"
-      , "align-items" => "center"
-      , "margin" => "50px 0px"
+      [ "display" := "flex"
+      , "flex-direction" := "column"
+      , "align-items" := "center"
+      , "margin" := "50px 0px"
       ]
     ] htmlList
 
@@ -112,13 +97,14 @@ view address model =
         Nothing
     selectedShipId = model.selectedShipId
     spacer = Html.div
-      [Html.Attributes.style ["height" => "40px"]] []
+      [Html.Attributes.style ["height" := "40px"]] []
   in
     wrapper <| (setupControlsView address model selectedShipId) ++
       [ spacer
-      , Grid.toHtml aimShoot model.player.trackingGrid
+      , Player.viewTrackingGrid aimShoot model.player
+      -- for debugging.
       , spacer
-      , Player.field Nothing model.computer
+      , Player.viewPrimaryGrid Nothing model.computer
       ]
 
 
@@ -129,19 +115,24 @@ setupControlsView address model selectedShipId =
       { hover = Signal.forwardTo address SetupShowShip
       , click = Signal.forwardTo address SetupAddShip
       }
-    shipSelector = Html.div [Html.Attributes.style ["display" => "flex", "overflow" => "hidden", "border-radius" => "10px"]] <|
-      List.map (shipFieldView address selectedShipId) (Player.getShips model.player)
-    hint = Html.div [Html.Attributes.style ["margin" => "20px 0px"]] [ Html.text "Press \"D\" to change ship's orientation" ]
+    shipSelector = Html.div
+      [ Html.Attributes.style
+        [ "display" := "flex"
+        , "overflow" := "hidden"
+        , "border-radius" := "10px"
+        ]
+      ] <| List.map (shipFieldView address selectedShipId) (Player.getShips model.player)
+    hint = Html.div
+      [ Html.Attributes.style ["margin" := "20px 0px"] ]
+      [ Html.text "Press \"D\" to change ship's orientation" ]
   in
     [ shipSelector
     , hint
     , Player.previewShip hoverClick model.hoverPos selectedShipId model.player
     ]
 
--- Depending on the Action render the proper html input.
--- TODO this might belong in the Ship module
 shipFieldView : Signal.Address Action -> Maybe Int -> Ship.Ship -> Html.Html
-shipFieldView address selectedShipId ship  =
+shipFieldView address selectedShipId ship =
   let
     isSelected =
       case selectedShipId of
@@ -155,7 +146,7 @@ shipListView address ship isSelected =
   let
     selectedStyle =
       if isSelected then
-        [ "background-color" => "gray" ]
+        [ "background-color" := "gray" ]
       else
         []
     direction =
@@ -164,16 +155,16 @@ shipListView address ship isSelected =
         Ship.Vertical -> "column"
     hiddenStyle =
       if ship.added then
-        ["cursor" => "auto"]
+        ["cursor" := "auto"]
       else []
     box = Html.div
       [ Html.Attributes.style <|
-        [ "width" => "20px"
-        , "height" => "20px"
-        , "border" => "1px solid gray"
-        , "border-radius" => "3px"
-        , "margin" => "1px"
-        , "vertical-align" => "middle"
+        [ "width" := "20px"
+        , "height" := "20px"
+        , "border" := "1px solid gray"
+        , "border-radius" := "3px"
+        , "margin" := "1px"
+        , "vertical-align" := "middle"
         ] ++ selectedStyle
       ] []
     clickEvent =
@@ -185,15 +176,15 @@ shipListView address ship isSelected =
   in
     Html.div
     ([ Html.Attributes.style <|
-      [ "display" => "flex"
-      , "flex-direction" => direction
-      , "align-items" => "center"
-      , "justify-content" => "center"
-      , "width" => "150px"
-      , "height" => "150px"
-      , "background-color" => "lightgray"
-      , "margin" => "0px 1px"
-      , "cursor" => "pointer"
+      [ "display" := "flex"
+      , "flex-direction" := direction
+      , "align-items" := "center"
+      , "justify-content" := "center"
+      , "width" := "150px"
+      , "height" := "150px"
+      , "background-color" := "lightgray"
+      , "margin" := "0px 1px"
+      , "cursor" := "pointer"
       ] ++ hiddenStyle
     ] ++ if ship.added then [] else [clickEvent])
     <| if ship.added then [] else List.repeat ship.length box
@@ -214,7 +205,9 @@ update : Action -> Model -> Model
 update action model =
   case action of
     SetupRandomOpponent seed ->
-      -- TODO For some reason freezing the time signal never updates the computer player, but if not frozen this function has to run each time the signal updates, which is inefficient
+      -- TODO For some reason freezing the time signal never updates the
+      -- computer player, but if not frozen this function has to run each time
+      -- the signal updates, which is inefficient
       if Player.allShipsAdded model.computer then
         model
       else
@@ -239,11 +232,11 @@ update action model =
                 |> Player.addShip shipId
             nextShipId = Player.nextNotAddedShipId newPlayer
           in
-            --if not ready then nextModel else { nextModel | state <- Play, computer <- Player.random model.seed }
             { model |
                 player <- newPlayer,
                 computer <- Player.random model.seed,
                 selectedShipId <- nextShipId,
+                -- If nextShipId is `Nothing`, It's time to `Play`
                 state <- if nextShipId == Nothing then Play  else model.state
             }
         Nothing ->
@@ -255,10 +248,10 @@ update action model =
         (player, computer) = Player.shoot pos model.player model.computer
         (newComputer, newPlayer) = AI.randomShot model.seed computer player
       in
-      { model | player <- newPlayer
-              , computer <- newComputer }
-              --, seed <- model.seed + 1 } -- Is this OK to do?
+      { model |
+        player <- newPlayer,
+        computer <- newComputer
+      }
     UpdateSeed seed ->
       { model | seed <- seed }
-    NoOp -> model
     NoOp -> model

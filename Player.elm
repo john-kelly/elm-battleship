@@ -10,7 +10,8 @@ module Player
   , nextNotAddedShipId
   , addShip
   , shoot
-  , field
+  , viewPrimaryGrid
+  , viewTrackingGrid
   , previewShip
   , canAddShip
   ) where
@@ -24,7 +25,6 @@ module Player
 -- Evan
 import Html
 -- 3rd Party
-import Matrix
 -- Battleship
 import Fleet
 import Grid
@@ -84,6 +84,7 @@ allShipsAdded player =
     |> List.map .added
     |> List.all identity
 
+-- Win/lose checker
 allShipsSunk : Player -> Bool
 allShipsSunk player =
   player
@@ -131,15 +132,33 @@ nextNotAddedShipId player =
       Just s -> Just s.id
       Nothing -> Nothing
 
-shoot : (Int, Int) -> Player -> Player -> (Player, Player)
+shoot : Loc.Location -> Player -> Player -> (Player, Player)
 shoot pos player enemy =
   let
     shotCell = Grid.shoot pos enemy.primaryGrid
     trackingGrid = Grid.setCell pos shotCell player.trackingGrid
     primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
+    isSunk =
+      --if shotCell == Grid.(Ship True) then
+        -- Check if the ship has been sunk
+        -- Find ship from position
+        enemy.fleet
+          |> Fleet.toList
+          |> List.map (\s -> (Ship.hasCoordinate pos s, s))
+          |> List.map (\(hasCoord, s) -> if hasCoord then Grid.isShipDestroyed primaryGrid s else False)
+          |> List.any identity
+      --else
+      --  False
+    updateIfSunk grid =
+      if isSunk then
+        enemy.fleet
+          |> Fleet.toList
+          |> List.foldr (\ship grid -> if Ship.hasCoordinate pos ship then Grid.sinkShip ship grid else grid) grid
+      else
+        grid
   in
-    (,) { player | trackingGrid <- trackingGrid }
-        { enemy | primaryGrid <- primaryGrid }
+    (,) { player | trackingGrid <- updateIfSunk trackingGrid }
+        { enemy | primaryGrid <- updateIfSunk primaryGrid }
 
 previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player -> Html.Html
 previewShip clickHover maybeHoverPos maybeShipId player =
@@ -179,9 +198,10 @@ previewShip clickHover maybeHoverPos maybeShipId player =
                 else
                   invalid shipToAdd
 
+viewTrackingGrid : Maybe Grid.Context -> Player -> Html.Html
+viewTrackingGrid context player =
+  Html.div [] [ Grid.toHtml context player.trackingGrid ]
 
-field : Maybe Grid.Context -> Player -> Html.Html
-field context player =
-  Html.div []
-  [ Grid.toHtml context player.primaryGrid
-  ]
+viewPrimaryGrid : Maybe Grid.Context -> Player -> Html.Html
+viewPrimaryGrid context player =
+  Html.div [] [ Grid.toHtml context player.primaryGrid ]

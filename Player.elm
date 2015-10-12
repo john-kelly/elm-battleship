@@ -14,6 +14,7 @@ module Player
   , viewTrackingGrid
   , previewShip
   , canAddShip
+  , allShipsSunk
   ) where
 
 -- The player manages the syn b/w the ships in a fleet and the grid.
@@ -138,24 +139,13 @@ shoot pos player enemy =
     shotCell = Grid.shoot pos enemy.primaryGrid
     trackingGrid = Grid.setCell pos shotCell player.trackingGrid
     primaryGrid = Grid.setCell pos shotCell enemy.primaryGrid
-    isSunk =
-      --if shotCell == Grid.(Ship True) then
-        -- Check if the ship has been sunk
-        -- Find ship from position
-        enemy.fleet
-          |> Fleet.toList
-          |> List.map (\s -> (Ship.hasCoordinate pos s, s))
-          |> List.map (\(hasCoord, s) -> if hasCoord then Grid.isShipDestroyed primaryGrid s else False)
-          |> List.any identity
-      --else
-      --  False
     updateIfSunk grid =
-      if isSunk then
-        enemy.fleet
-          |> Fleet.toList
-          |> List.foldr (\ship grid -> if Ship.hasCoordinate pos ship then Grid.sinkShip ship grid else grid) grid
-      else
-        grid
+        case Fleet.getShipFromCoord pos enemy.fleet of
+          Just ship ->
+            if Grid.isShipDestroyed primaryGrid ship then
+              Grid.sinkShip ship grid
+            else grid
+          Nothing -> grid
   in
     (,) { player | trackingGrid <- updateIfSunk trackingGrid }
         { enemy | primaryGrid <- updateIfSunk primaryGrid }

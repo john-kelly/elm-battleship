@@ -18,7 +18,6 @@ type alias Ship =
   , length : Int
   , orientation : Orientation
   , location : Loc.Location
-  , isSunk : Bool
   , added : Bool
   }
 
@@ -28,7 +27,6 @@ init length orientation location =
   , length = length
   , orientation = orientation
   , location = location
-  , isSunk = False
   , added = False
   }
 

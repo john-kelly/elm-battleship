@@ -154,22 +154,16 @@ previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player ->
 previewShip clickHover maybeHoverPos maybeShipId player =
   let
     noPreview =
-      Html.div []
-        [ player.primaryGrid
-            |> Grid.toHtml clickHover
-        ]
+      player.primaryGrid
+        |> Grid.toHtml clickHover
     preview ship =
-      Html.div []
-        [ player.primaryGrid
-            |> Grid.addShip ship
-            |> Grid.toHtml clickHover
-        ]
+      player.primaryGrid
+        |> Grid.addShip ship
+        |> Grid.toHtml clickHover
     invalid ship =
-      Html.div []
-        [ player.primaryGrid
-            |> Grid.addInvalidShip ship
-            |> Grid.toHtml clickHover
-        ]
+      player.primaryGrid
+        |> Grid.addInvalidShip ship
+        |> Grid.toHtml clickHover
   in
   case maybeShipId of
     Nothing -> noPreview
@@ -190,8 +184,8 @@ previewShip clickHover maybeHoverPos maybeShipId player =
 
 viewTrackingGrid : Maybe Grid.Context -> Player -> Html.Html
 viewTrackingGrid context player =
-  Html.div [] [ Grid.toHtml context player.trackingGrid ]
+  Grid.toHtml context player.trackingGrid
 
 viewPrimaryGrid : Maybe Grid.Context -> Player -> Html.Html
 viewPrimaryGrid context player =
-  Html.div [] [ Grid.toHtml context player.primaryGrid ]
+  Grid.toHtml context player.primaryGrid

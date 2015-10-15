@@ -137,21 +137,21 @@ nextShot grid =
         left = (x-1,y)
         top = (x,y-1)
       in
-        if | isHit right && isEmptyHit left -> findUnknown <| Debug.log "findUnknown - 1" right
-           | isHit right && isHit left -> findUnknown <| Debug.log "findUnknown - 2" right
-           | isHit right -> Debug.log "findUnknown - 3" left
-           | isHit bottom && isEmptyHit top -> findUnknown <| Debug.log "findUnknown - 4" bottom
-           | isHit bottom && isHit top -> findUnknown <| Debug.log "findUnknown - 5" bottom
-           | isHit bottom -> Debug.log "findUnknown - 6" top
-           | isUnkown left -> Debug.log "findUnknown - 7" left
-           | isUnkown right -> Debug.log "findUnknown - 8" right
-           | isUnkown top -> Debug.log "findUnknown - 9" top
-           | isUnkown bottom -> Debug.log "findUnknown - 10" bottom
-           | otherwise -> Debug.log "findUnknown - 11" bottom
+        if | isHit right && isEmptyHit left -> findUnknown <| right
+           | isHit right && isHit left -> findUnknown <| right
+           | isHit right -> left
+           | isHit bottom && isEmptyHit top -> findUnknown <| bottom
+           | isHit bottom && isHit top -> findUnknown <| bottom
+           | isHit bottom -> top
+           | isUnkown left -> left
+           | isUnkown right -> right
+           | isUnkown top -> top
+           | isUnkown bottom -> bottom
+           | otherwise -> bottom
   in
     case hitCellLoc of
       Just loc ->
-        Just <| (\(a,b) -> (b,a)) <| Debug.log "findUnknown - final" <| findUnknown loc
+        Just <| (\(a,b) -> (b,a)) <| findUnknown loc
       Nothing ->
         Nothing
 
@@ -281,8 +281,8 @@ toHtml context grid =
   in
   Html.div
   ([ Html.Attributes.class "battlefield"
-    , Html.Attributes.style []
-    ] ++ event)
+   , Html.Attributes.style ["display" := "inline-block"]
+   ] ++ event)
   (grid
     |> Matrix.indexedMap (cellToHtml context)
     |> toHtmlRows)

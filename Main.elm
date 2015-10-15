@@ -81,7 +81,9 @@ wrapper : List Html.Html -> Html.Html
 wrapper htmlList =
   Html.main'
     [ Html.Attributes.style
-      [ "display" := "flex"
+      [
+      --"display" := "flex"
+       "text-align" := "center"
       , "flex-direction" := "row"
       , "align-items" := "center"
       , "margin" := "50px 0px"
@@ -130,6 +132,7 @@ setupView address model selectedShipId =
   in
     [ shipSetup
     , Player.previewShip hoverClick model.hoverPos selectedShipId model.player
+    , Player.viewTrackingGrid Nothing model.computer
     ]
 
 playView : Signal.Address Action -> Model -> List Html.Html

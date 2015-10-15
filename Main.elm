@@ -4,6 +4,7 @@ module Battleship (main) where
 import String
 import Keyboard
 import Time
+import Debug
 -- Evan
 import Html
 import Html.Attributes
@@ -260,7 +261,7 @@ update action model =
                 computer <- Player.random model.seed,
                 selectedShipId <- nextShipId,
                 -- If nextShipId is `Nothing`, It's time to `Play`
-                state <- if nextShipId == Nothing then Play  else model.state
+                state <- if nextShipId == Nothing then Play else model.state
             }
         Nothing ->
           model
@@ -269,7 +270,8 @@ update action model =
     PlayShoot pos ->
       let
         (player, computer) = Player.shoot pos model.player model.computer
-        (newComputer, newPlayer) = AI.randomShot model.seed computer player
+        (newComputer, newPlayer) = AI.shoot model.seed computer player
+        --p = Debug.log "Shoot position" pos
       in
         if | Player.allShipsSunk computer ->
               { model |

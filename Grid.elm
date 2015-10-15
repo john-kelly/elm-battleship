@@ -133,25 +133,25 @@ nextShot grid =
     findUnknown (x,y) =
       let
         right = (x+1,y)
-        bottom = (x,y-1)
+        bottom = (x,y+1)
         left = (x-1,y)
-        top = (x,y+1)
+        top = (x,y-1)
       in
-        if | isHit right && isEmptyHit left -> findUnknown <| Debug.log "findUnknown" right
-           | isHit right && isHit left -> findUnknown <| Debug.log "findUnknown" right
-           | isHit right -> left
-           | isHit bottom && isEmptyHit top -> findUnknown <| Debug.log "findUnknown" bottom
-           | isHit bottom && isHit top -> findUnknown <| Debug.log "findUnknown" bottom
-           | isHit bottom -> top
-           | isUnkown left -> left
-           | isUnkown right -> right
-           | isUnkown top -> top
-           | isUnkown bottom -> bottom
-           | otherwise -> bottom
+        if | isHit right && isEmptyHit left -> findUnknown <| Debug.log "findUnknown - 1" right
+           | isHit right && isHit left -> findUnknown <| Debug.log "findUnknown - 2" right
+           | isHit right -> Debug.log "findUnknown - 3" left
+           | isHit bottom && isEmptyHit top -> findUnknown <| Debug.log "findUnknown - 4" bottom
+           | isHit bottom && isHit top -> findUnknown <| Debug.log "findUnknown - 5" bottom
+           | isHit bottom -> Debug.log "findUnknown - 6" top
+           | isUnkown left -> Debug.log "findUnknown - 7" left
+           | isUnkown right -> Debug.log "findUnknown - 8" right
+           | isUnkown top -> Debug.log "findUnknown - 9" top
+           | isUnkown bottom -> Debug.log "findUnknown - 10" bottom
+           | otherwise -> Debug.log "findUnknown - 11" bottom
   in
     case hitCellLoc of
       Just loc ->
-        Just <| (\(a,b) -> (b,a)) <| Debug.log "findUnknown" <| findUnknown loc
+        Just <| (\(a,b) -> (b,a)) <| Debug.log "findUnknown - final" <| findUnknown loc
       Nothing ->
         Nothing
 

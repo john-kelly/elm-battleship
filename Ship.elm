@@ -32,11 +32,11 @@ init length orientation location =
 
 setLocation : Loc.Location -> Ship -> Ship
 setLocation newLocation ship =
-  { ship | location <- newLocation }
+  { ship | location = newLocation }
 
 setRow : Int -> Ship -> Ship
 setRow row ship =
-  { ship | location <- (row, (Loc.column ship.location)) }
+  { ship | location = (row, (Loc.column ship.location)) }
 
 getRow : Ship -> Int
 getRow ship =
@@ -44,7 +44,7 @@ getRow ship =
 
 setColumn : Int -> Ship -> Ship
 setColumn column ship =
-  { ship | location <- ((Loc.row ship.location), column) }
+  { ship | location = ((Loc.row ship.location), column) }
 
 getColumn : Ship -> Int
 getColumn ship =
@@ -64,12 +64,12 @@ getShipCoordinates ship =
 toggleOrientation : Ship -> Ship
 toggleOrientation ship =
   { ship |
-    orientation <- if ship.orientation == Vertical then Horizontal else Vertical
+    orientation = if ship.orientation == Vertical then Horizontal else Vertical
   }
 
 setAdded : Bool -> Ship -> Ship
 setAdded bool ship =
-  { ship | added <- bool }
+  { ship | added = bool }
 
 hasCoordinate : Loc.Location -> Ship -> Bool
 hasCoordinate coord ship =

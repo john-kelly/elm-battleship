@@ -70,7 +70,7 @@ addShip ship fleet =
     length = List.length <| toList fleet
   in
     fleet
-      |> Dict.insert length { ship | id <- length }
+      |> Dict.insert length { ship | id = length }
 
 getShip : Int -> Fleet -> Maybe Ship.Ship
 getShip shipId fleet =

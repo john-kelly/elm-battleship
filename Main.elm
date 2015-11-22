@@ -235,17 +235,17 @@ update action model =
       if Player.allShipsAdded model.computer then
         model
       else
-        { model | computer <- Player.random seed }
+        { model | computer = Player.random seed }
     SetupOrientationToggle ->
       case model.selectedShipId of
         Just shipId ->
-          { model | player <- Player.updateShip shipId Ship.toggleOrientation model.player }
+          { model | player = Player.updateShip shipId Ship.toggleOrientation model.player }
         Nothing ->
           model
     SetupSelectShip shipId ->
-      { model | selectedShipId <- shipId }
+      { model | selectedShipId = shipId }
     SetupShowShip maybePos ->
-      { model | hoverPos <- maybePos }
+      { model | hoverPos = maybePos }
     SetupAddShip pos ->
       case model.selectedShipId of
         Just shipId ->
@@ -257,11 +257,11 @@ update action model =
             nextShipId = Player.nextNotAddedShipId newPlayer
           in
             { model |
-                player <- newPlayer,
-                computer <- Player.random model.seed,
-                selectedShipId <- nextShipId,
+                player = newPlayer,
+                computer = Player.random model.seed,
+                selectedShipId = nextShipId,
                 -- If nextShipId is `Nothing`, It's time to `Play`
-                state <- if nextShipId == Nothing then Play else model.state
+                state = if nextShipId == Nothing then Play  else model.state
             }
         Nothing ->
           model
@@ -273,23 +273,23 @@ update action model =
         (newComputer, newPlayer) = AI.shoot model.seed computer player
         --p = Debug.log "Shoot position" pos
       in
-        if | Player.allShipsSunk computer ->
+        if Player.allShipsSunk computer then
               { model |
-                player <- player,
-                computer <- computer,
-                state <- GameOver Player1
+                player = player,
+                computer = computer,
+                state = GameOver Player1
               }
-           | Player.allShipsSunk newPlayer ->
-              { model |
-                player <- newPlayer,
-                computer <- newComputer,
-                state <- GameOver Player2
-              }
-           | otherwise ->
-              { model |
-               player <- newPlayer,
-               computer <- newComputer
-              }
+        else if Player.allShipsSunk newPlayer then
+            { model |
+              player = newPlayer,
+              computer = newComputer,
+              state = GameOver Player2
+            }
+        else
+            { model |
+             player = newPlayer,
+             computer = newComputer
+            }
     UpdateSeed seed ->
-      { model | seed <- seed }
+      { model | seed = seed }
     NoOp -> model

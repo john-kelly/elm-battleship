@@ -162,6 +162,7 @@ shoot (row, col) grid =
       case cell of
         Ship _ -> Ship True
         Empty _ -> Empty True
+        _ -> cell -- Is still this ok to do?
     Nothing -> -- Error
       Empty False
 

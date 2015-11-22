@@ -4,6 +4,7 @@ module Battleship (main) where
 import String
 import Keyboard
 import Time
+import Debug
 -- Evan
 import Html
 import Html.Attributes
@@ -80,7 +81,9 @@ wrapper : List Html.Html -> Html.Html
 wrapper htmlList =
   Html.main'
     [ Html.Attributes.style
-      [ "display" := "flex"
+      [
+      --"display" := "flex"
+        "text-align" := "center"
       , "flex-direction" := "row"
       , "align-items" := "center"
       , "margin" := "50px 0px"
@@ -113,22 +116,20 @@ setupView address model selectedShipId =
       }
     shipSelector = Html.div
       [ Html.Attributes.style
-        [ "display" := "flex"
+        [ "display" := "inline-flex"
         , "overflow" := "hidden"
         , "border-radius" := "10px"
         ]
       ] <| List.map (shipFieldView address selectedShipId) (Player.getShips model.player)
+    shipSetup = Html.div []
+      [ shipSelector, hint ]
     hint = Html.div
       [ Html.Attributes.style ["margin" := "20px 0px"] ]
       [ Html.text "Press \"D\" to change ship's orientation" ]
-    shipSetup = Html.div
-      [ Html.Attributes.style
-        [ "text-align" := "center" ]
-      ]
-      [ hint, shipSelector ]
   in
     [ shipSetup
     , Player.previewShip hoverClick model.hoverPos selectedShipId model.player
+    , Player.viewTrackingGrid Nothing model.computer
     ]
 
 playView : Signal.Address Action -> Model -> List Html.Html
@@ -234,17 +235,17 @@ update action model =
       if Player.allShipsAdded model.computer then
         model
       else
-        { model | computer <- Player.random seed }
+        { model | computer = Player.random seed }
     SetupOrientationToggle ->
       case model.selectedShipId of
         Just shipId ->
-          { model | player <- Player.updateShip shipId Ship.toggleOrientation model.player }
+          { model | player = Player.updateShip shipId Ship.toggleOrientation model.player }
         Nothing ->
           model
     SetupSelectShip shipId ->
-      { model | selectedShipId <- shipId }
+      { model | selectedShipId = shipId }
     SetupShowShip maybePos ->
-      { model | hoverPos <- maybePos }
+      { model | hoverPos = maybePos }
     SetupAddShip pos ->
       case model.selectedShipId of
         Just shipId ->
@@ -256,11 +257,11 @@ update action model =
             nextShipId = Player.nextNotAddedShipId newPlayer
           in
             { model |
-                player <- newPlayer,
-                computer <- Player.random model.seed,
-                selectedShipId <- nextShipId,
+                player = newPlayer,
+                computer = Player.random model.seed,
+                selectedShipId = nextShipId,
                 -- If nextShipId is `Nothing`, It's time to `Play`
-                state <- if nextShipId == Nothing then Play  else model.state
+                state = if nextShipId == Nothing then Play  else model.state
             }
         Nothing ->
           model
@@ -269,25 +270,26 @@ update action model =
     PlayShoot pos ->
       let
         (player, computer) = Player.shoot pos model.player model.computer
-        (newComputer, newPlayer) = AI.randomShot model.seed computer player
+        (newComputer, newPlayer) = AI.shoot model.seed computer player
+        --p = Debug.log "Shoot position" pos
       in
-        if | Player.allShipsSunk computer ->
+        if Player.allShipsSunk computer then
               { model |
-                player <- player,
-                computer <- computer,
-                state <- GameOver Player1
+                player = player,
+                computer = computer,
+                state = GameOver Player1
               }
-           | Player.allShipsSunk newPlayer ->
-              { model |
-                player <- newPlayer,
-                computer <- newComputer,
-                state <- GameOver Player2
-              }
-           | otherwise ->
-              { model |
-               player <- newPlayer,
-               computer <- newComputer
-              }
+        else if Player.allShipsSunk newPlayer then
+            { model |
+              player = newPlayer,
+              computer = newComputer,
+              state = GameOver Player2
+            }
+        else
+            { model |
+             player = newPlayer,
+             computer = newComputer
+            }
     UpdateSeed seed ->
-      { model | seed <- seed }
+      { model | seed = seed }
     NoOp -> model

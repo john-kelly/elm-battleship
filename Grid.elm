@@ -1,5 +1,6 @@
 module Grid
   ( Grid
+  , Cell
   , Context
   , toHtml
   , emptyPrimaryGrid
@@ -14,11 +15,13 @@ module Grid
   , getHeight
   , getWidth
   , getUnknownPositions
+  , nextShot
   , shipInBounds
   ) where
 
 -- Core
 import Array -- For matrix conversion
+import Debug
 -- Evan
 import Html
 import Html.Attributes
@@ -98,6 +101,60 @@ getUnknownPositions grid =
     |> Array.toList
     |> List.map (\(y,x) -> (x,y))
 
+-- AI helper
+nextShot : Grid -> Maybe Loc.Location
+nextShot grid =
+  let
+    hitCellLoc =
+      grid
+        |> Matrix.toIndexedArray
+        |> Array.foldl (\((x,y), cell) hitLoc ->
+          if hitLoc == Nothing && cell == (Ship True) then
+            Just (x,y) else hitLoc)
+        Nothing
+    isEmptyHit (x,y) =
+      case Matrix.get x y grid of
+        Just cell ->
+          cell == (Empty True)
+        Nothing ->
+          False
+    isUnkown (x,y) =
+      case Matrix.get x y grid of
+        Just cell ->
+          cell == Unknown
+        Nothing ->
+          False
+    isHit (x,y) =
+      case Matrix.get x y grid of
+        Just cell ->
+          cell == (Ship True)
+        Nothing ->
+          False
+    findUnknown (x,y) =
+      let
+        right = (x+1,y)
+        bottom = (x,y+1)
+        left = (x-1,y)
+        top = (x,y-1)
+      in
+        if isHit right && isEmptyHit left then findUnknown right
+           else if isHit right && isHit left then findUnknown right
+           else if isHit right then left -- FIXME
+           else if isHit bottom && isEmptyHit top then findUnknown bottom
+           else if isHit bottom && isHit top then findUnknown bottom
+           else if isHit bottom then top -- FIXME
+           else if isUnkown left then left
+           else if isUnkown right then right
+           else if isUnkown bottom then bottom
+           else if isUnkown top then top
+           else bottom
+  in
+    case hitCellLoc of
+      Just loc ->
+        Just <| (\(a,b) -> (b,a)) <| findUnknown loc
+      Nothing ->
+        Nothing
+
 shoot : Loc.Location -> Grid -> Cell
 shoot (row, col) grid =
   case Matrix.get col row grid of
@@ -105,6 +162,7 @@ shoot (row, col) grid =
       case cell of
         Ship _ -> Ship True
         Empty _ -> Empty True
+        _ -> cell -- Is still this ok to do?
     Nothing -> -- Error
       Empty False
 
@@ -175,7 +233,7 @@ cellToHtml hoverClick y x cell =
     box color = Html.div
       ([ Html.Attributes.style <| ("background-color", color) :: style
        , Html.Attributes.class "cell"
-       ] ++ adm) []
+       ] ++ adm) [{-Html.text (toString pos)-}]
   in
   case cell of
     Ship isHit ->
@@ -224,8 +282,8 @@ toHtml context grid =
   in
   Html.div
   ([ Html.Attributes.class "battlefield"
-    , Html.Attributes.style []
-    ] ++ event)
+   , Html.Attributes.style ["display" := "inline-block"]
+   ] ++ event)
   (grid
     |> Matrix.indexedMap (cellToHtml context)
     |> toHtmlRows)

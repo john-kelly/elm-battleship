@@ -71,8 +71,8 @@ addShip shipId player =
         { player |
             -- This is important here. Both the ship in the fleet and the grid
             -- are updated when a ship is added.
-            fleet <- Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
-            primaryGrid <- Grid.addShip ship player.primaryGrid
+            fleet = Fleet.updateShip shipId Ship.setAddedTrue player.fleet,
+            primaryGrid = Grid.addShip ship player.primaryGrid
         }
       else
         player
@@ -98,18 +98,20 @@ updateShip shipId fn player =
   let
     newShip = Fleet.updateShip shipId fn player.fleet
   in
-    { player | fleet <- newShip }
+    { player | fleet = newShip }
 
 canAddShip : Ship.Ship -> Player -> Bool
 canAddShip ship player =
   -- order here is important for optimization. `shipInBounds` is cheap
-  if | not (Grid.shipInBounds ship player.primaryGrid) -> False
-     | Fleet.shipOverlaps ship player.fleet -> False
-     | otherwise -> True
+  if not (Grid.shipInBounds ship player.primaryGrid) then
+    False
+     else if Fleet.shipOverlaps ship player.fleet then
+      False
+     else True
 
 updateGrid : Grid.Grid -> Player -> Player
 updateGrid grid player =
-  { player | primaryGrid <- grid }
+  { player | primaryGrid = grid }
 
 getShips : Player -> List Ship.Ship
 getShips player =
@@ -147,29 +149,23 @@ shoot pos player enemy =
             else grid
           Nothing -> grid
   in
-    (,) { player | trackingGrid <- updateIfSunk trackingGrid }
-        { enemy | primaryGrid <- updateIfSunk primaryGrid }
+    (,) { player | trackingGrid = updateIfSunk trackingGrid }
+        { enemy | primaryGrid = updateIfSunk primaryGrid }
 
 previewShip : Maybe Grid.Context -> Maybe Loc.Location -> Maybe Int -> Player -> Html.Html
 previewShip clickHover maybeHoverPos maybeShipId player =
   let
     noPreview =
-      Html.div []
-        [ player.primaryGrid
-            |> Grid.toHtml clickHover
-        ]
+      player.primaryGrid
+        |> Grid.toHtml clickHover
     preview ship =
-      Html.div []
-        [ player.primaryGrid
-            |> Grid.addShip ship
-            |> Grid.toHtml clickHover
-        ]
+      player.primaryGrid
+        |> Grid.addShip ship
+        |> Grid.toHtml clickHover
     invalid ship =
-      Html.div []
-        [ player.primaryGrid
-            |> Grid.addInvalidShip ship
-            |> Grid.toHtml clickHover
-        ]
+      player.primaryGrid
+        |> Grid.addInvalidShip ship
+        |> Grid.toHtml clickHover
   in
   case maybeShipId of
     Nothing -> noPreview
@@ -190,8 +186,8 @@ previewShip clickHover maybeHoverPos maybeShipId player =
 
 viewTrackingGrid : Maybe Grid.Context -> Player -> Html.Html
 viewTrackingGrid context player =
-  Html.div [] [ Grid.toHtml context player.trackingGrid ]
+  Grid.toHtml context player.trackingGrid
 
 viewPrimaryGrid : Maybe Grid.Context -> Player -> Html.Html
 viewPrimaryGrid context player =
-  Html.div [] [ Grid.toHtml context player.primaryGrid ]
+  Grid.toHtml context player.primaryGrid

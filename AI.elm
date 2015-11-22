@@ -1,13 +1,14 @@
-module AI where
+module AI (shoot) where
 
 -- Core
+import Debug
 import Array
 import Random
-
+-- 3rd party
+import Matrix
 -- Battleship
 import Player
 import Grid
-import Ship
 
 randomShot : Int -> Player.Player -> Player.Player -> (Player.Player, Player.Player)
 randomShot seed player enemy =
@@ -25,3 +26,11 @@ randomShot seed player enemy =
         Player.shoot pos player enemy
       Nothing ->
         (player, enemy)
+
+shoot : Int -> Player.Player -> Player.Player -> (Player.Player, Player.Player)
+shoot seed player enemy =
+  case Grid.nextShot player.trackingGrid of
+    Just (x,y) ->
+      Player.shoot (Debug.log "nextShot position:" (x,y)) player enemy
+    Nothing ->
+      randomShot (Debug.log "" seed) player enemy

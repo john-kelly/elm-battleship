@@ -83,7 +83,7 @@ wrapper htmlList =
     [ Html.Attributes.style
       [
       --"display" := "flex"
-       "text-align" := "center"
+        "text-align" := "center"
       , "flex-direction" := "row"
       , "align-items" := "center"
       , "margin" := "50px 0px"
@@ -116,19 +116,16 @@ setupView address model selectedShipId =
       }
     shipSelector = Html.div
       [ Html.Attributes.style
-        [ "display" := "flex"
+        [ "display" := "inline-flex"
         , "overflow" := "hidden"
         , "border-radius" := "10px"
         ]
       ] <| List.map (shipFieldView address selectedShipId) (Player.getShips model.player)
+    shipSetup = Html.div []
+      [ shipSelector, hint ]
     hint = Html.div
       [ Html.Attributes.style ["margin" := "20px 0px"] ]
       [ Html.text "Press \"D\" to change ship's orientation" ]
-    shipSetup = Html.div
-      [ Html.Attributes.style
-        [ "text-align" := "center" ]
-      ]
-      [ hint, shipSelector ]
   in
     [ shipSetup
     , Player.previewShip hoverClick model.hoverPos selectedShipId model.player

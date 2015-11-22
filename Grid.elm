@@ -137,16 +137,16 @@ nextShot grid =
         left = (x-1,y)
         top = (x,y-1)
       in
-        if | isHit right && isEmptyHit left -> findUnknown <| right
-           | isHit right && isHit left -> findUnknown <| right
-           | isHit right -> left
-           | isHit bottom && isEmptyHit top -> findUnknown <| bottom
-           | isHit bottom && isHit top -> findUnknown <| bottom
-           | isHit bottom -> top
+        if | isHit right && isEmptyHit left -> findUnknown right
+           | isHit right && isHit left -> findUnknown right
+           | isHit right -> left -- FIXME
+           | isHit bottom && isEmptyHit top -> findUnknown bottom
+           | isHit bottom && isHit top -> findUnknown bottom
+           | isHit bottom -> top -- FIXME
            | isUnkown left -> left
            | isUnkown right -> right
-           | isUnkown top -> top
            | isUnkown bottom -> bottom
+           | isUnkown top -> top
            | otherwise -> bottom
   in
     case hitCellLoc of
